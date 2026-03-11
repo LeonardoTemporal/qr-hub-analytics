@@ -1,0 +1,128 @@
+# =============================================================================
+# QR-Hub Analytics - Docker Compose Orchestration
+# =============================================================================
+# Stack: PostgreSQL 15 | FastAPI | Next.js 16 (standalone) | Metabase
+#
+# Usage:
+#   cp .env.example .env           # fill in all required variables
+#   docker compose up -d --build
+#
+# All services communicate over the internal "qrhub_net" bridge network.
+# Only the ports listed under "ports" are exposed to the host.
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # db - PostgreSQL 15
+  # Stores QR scan analytics produced by the backend service.
+  # Metabase connects to this database for BI reporting.
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: qrhub_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - qrhub_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # backend - FastAPI (async, Python 3.12)
+  # Handles QR redirect requests and records scan analytics via BackgroundTasks.
+  # Depends on "db" being healthy before accepting traffic.
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qrhub_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      FRONTEND_URL: ${FRONTEND_URL}
+      GEOIP_DB_PATH: /app/data/GeoLite2-City.mmdb
+    volumes:
+      # Mount directory containing GeoLite2-City.mmdb
+      # Download from: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+      - ./backend/data:/app/data:ro
+    ports:
+      - "8000:8000"
+    networks:
+      - qrhub_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # frontend - Next.js 16 (output: standalone)
+  # Serves the Linktree-style landing pages for each campaign.
+  # The NEXT_PUBLIC_API_URL variable must point to the publicly reachable
+  # backend URL (e.g. https://api.yourdomain.com) so QR links resolve correctly.
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_GA4_ID:  ${NEXT_PUBLIC_GA4_ID}
+    container_name: qrhub_frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_GA4_ID:  ${NEXT_PUBLIC_GA4_ID}
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    networks:
+      - qrhub_net
+    depends_on:
+      - backend
+
+  # ---------------------------------------------------------------------------
+  # metabase - Business Intelligence (official Metabase image)
+  # Connect Metabase to the "db" service (host: db, port: 5432) to create
+  # dashboards over the "scans" table without extra ETL.
+  # ---------------------------------------------------------------------------
+  metabase:
+    image: metabase/metabase:latest
+    container_name: qrhub_metabase
+    restart: unless-stopped
+    environment:
+      MB_DB_TYPE:   h2
+      JAVA_TIMEZONE: UTC
+    volumes:
+      - metabase_data:/metabase-data
+    ports:
+      - "3001:3000"
+    networks:
+      - qrhub_net
+    depends_on:
+      - db
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  metabase_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  qrhub_net:
+    driver: bridge

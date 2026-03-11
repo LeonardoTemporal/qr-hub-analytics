@@ -1,0 +1,37 @@
+# Files and directories excluded from the Docker build context for the backend.
+# Keeping the build context small reduces build time and image size.
+
+# Local environment overrides
+.env
+.env.*
+
+# GeoIP database -- injected at runtime via Docker volume, not baked into image
+data/
+*.mmdb
+
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Tests and dev tooling
+tests/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# OS and editor artifacts
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Git metadata
+.git/
+.gitignore

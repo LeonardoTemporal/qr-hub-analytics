@@ -1,0 +1,86 @@
+# =============================================================================
+# QR-Hub Analytics -- Root .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Environment files -- NEVER commit credentials or secrets
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# -----------------------------------------------------------------------------
+# GeoIP database -- binary file, not tracked in version control
+# Download instructions: README.md > GeoIP Database Setup
+# -----------------------------------------------------------------------------
+backend/data/
+*.mmdb
+
+# -----------------------------------------------------------------------------
+# Frontend build artifacts
+# -----------------------------------------------------------------------------
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/dist/
+
+# -----------------------------------------------------------------------------
+# Python artifacts
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# -----------------------------------------------------------------------------
+# Docker local persistence volumes
+# These directories are created by Docker Compose named volumes on the host
+# when using bind mounts. They should not be committed.
+# -----------------------------------------------------------------------------
+postgres_data/
+metabase_data/
+
+# -----------------------------------------------------------------------------
+# OS and editor artifacts
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# -----------------------------------------------------------------------------
+# Testing and coverage
+# -----------------------------------------------------------------------------
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage/
+*.lcov
