@@ -1,0 +1,20 @@
+# Dependencias locales
+node_modules
+.npm
+
+# Build outputs
+.next
+out
+dist
+
+# Env files (nunca subir al repo)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
