@@ -54,6 +54,7 @@ services:
       GEOIP_DB_PATH: /app/data/GeoLite2-City.mmdb
     volumes:
       # Mount directory containing GeoLite2-City.mmdb
+      - ${DATA_PATH:-./backend/data}:/app/data:ro
       # Download from: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
       - ./backend/data:/app/data:ro
     ports:
