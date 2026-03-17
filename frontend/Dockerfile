@@ -13,7 +13,7 @@ COPY package.json package-lock.json* ./
 # --omit=dev installs only production dependencies in the deps stage.
 # devDependencies (TypeScript types, ESLint, etc.) are only needed in the
 # builder stage where node_modules from this stage are copied.
-RUN npm ci --omit=dev
+RUN npm ci
 
 # ── Stage 2: Build ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
