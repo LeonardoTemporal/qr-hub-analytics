@@ -57,8 +57,8 @@ services:
       - ${DATA_PATH:-./backend/data}:/app/data:ro
       # Download from: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
       - ./backend/data:/app/data:ro
-    ports:
-      - "8000:8000"
+    # ports:
+      # - "8000:8000"
     networks:
       - qrhub_net
     depends_on:
@@ -84,8 +84,8 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_GA4_ID:  ${NEXT_PUBLIC_GA4_ID}
       NODE_ENV: production
-    ports:
-      - "3000:3000"
+   # ports:
+    #  - "3000:3000"
     networks:
       - qrhub_net
     depends_on:
