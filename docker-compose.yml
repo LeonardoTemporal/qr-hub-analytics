@@ -42,7 +42,7 @@ services:
   # Handles QR redirect requests and records scan analytics via BackgroundTasks.
   # Depends on "db" being healthy before accepting traffic.
   # ---------------------------------------------------------------------------
-  backend:
+  qrhub_backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -71,7 +71,7 @@ services:
   # The NEXT_PUBLIC_API_URL variable must point to the publicly reachable
   # backend URL (e.g. https://api.yourdomain.com) so QR links resolve correctly.
   # ---------------------------------------------------------------------------
-  frontend:
+  qrhub_frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -89,7 +89,7 @@ services:
     networks:
       - qrhub_net
     depends_on:
-      - backend
+      - qrhub_backend
 
   # ---------------------------------------------------------------------------
   # metabase - Business Intelligence (official Metabase image)
