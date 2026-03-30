@@ -80,6 +80,8 @@ export default async function CampaignPage({ params }: PageProps) {
           <p className="text-xs text-zinc-600 select-none">
             Powered by{" "}
             <span className="text-zinc-500 font-medium">QR-Hub Analytics</span>
+            {" "}|{" "}
+            <span className="text-zinc-500 font-medium">by HellSpawn</span>
           </p>
         </footer>
       </div>
