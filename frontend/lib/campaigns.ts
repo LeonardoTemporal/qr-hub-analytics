@@ -15,37 +15,33 @@ import type { CampaignData } from "@/types/campaign";
  * Key: campaign_id slug (must match the value encoded in the physical QR code).
  */
 const CAMPAIGNS: Record<string, CampaignData> = {
-  "mi-negocio": {
-    id: "mi-negocio",
-    // TODO: Replace with the actual business display name.
-    displayName: "Nombre del Negocio",
-    // TODO: Replace with a short description visible below the avatar.
-    bio: "Encontranos en nuestras redes o visitanos en la web.",
+  "7fitment": {
+    id: "7fitment",
+    displayName: "7Fitment",
+    bio: "Transforma tu cuerpo, transforma tu vida. Entrenamiento personalizado y nutrición.",
     links: [
       {
         id: "whatsapp",
-        // TODO: Replace phone number and pre-filled message text.
         label: "Escribinos por WhatsApp",
-        href: "https://wa.me/XXXXXXXXXXX?text=Hola%2C%20vi%20tu%20QR",
+        href: "https://wa.me/525637940104",
         icon: "MessageCircle",
         colorClass: "bg-green-500/10 hover:bg-green-500/20",
       },
       {
         id: "instagram",
-        // TODO: Replace handle with the real Instagram username.
         label: "Seguinos en Instagram",
-        href: "https://instagram.com/HANDLE",
+        href: "https://www.instagram.com/7fitment/",
         icon: "Instagram",
         colorClass: "bg-pink-500/10 hover:bg-pink-500/20",
       },
-      {
-        id: "website",
-        // TODO: Replace with the real website URL.
-        label: "Visitar sitio web",
-        href: "https://tudominio.com",
-        icon: "Globe",
-        colorClass: "bg-indigo-500/10 hover:bg-indigo-500/20",
-      },
+      // Website button temporarily hidden
+      // {
+      //   id: "website",
+      //   label: "Visitar sitio web",
+      //   href: "https://tudominio.com",
+      //   icon: "Globe",
+      //   colorClass: "bg-indigo-500/10 hover:bg-indigo-500/20",
+      // },
     ],
   },
 };
