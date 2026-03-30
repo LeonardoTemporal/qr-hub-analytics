@@ -61,6 +61,7 @@ services:
       # - "8000:8000"
     networks:
       - qrhub_net
+      - dokploy-network
     depends_on:
       db:
         condition: service_healthy
@@ -88,6 +89,7 @@ services:
     #  - "3000:3000"
     networks:
       - qrhub_net
+      - dokploy-network
     depends_on:
       - qrhub_backend
 
@@ -127,3 +129,5 @@ volumes:
 networks:
   qrhub_net:
     driver: bridge
+  dokploy-network:
+    external: true
