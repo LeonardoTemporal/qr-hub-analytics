@@ -326,7 +326,7 @@ export default function DashboardPage() {
     async function fetchAnalytics() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-        const url = `${apiUrl}/analytics/7fitment`;
+        const url = `${apiUrl}/api/analytics/7fitment`;
         console.log("Fetching analytics from:", url);
 
         const response = await fetch(url);

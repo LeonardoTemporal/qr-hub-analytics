@@ -1,14 +1,10 @@
 /**
- * Página dinámica de campaña – App Router Next.js 14+
+ * Página estática de enlaces – 7Fitment
  *
- * Ruta: /{campaign_id}
- * Esta es la pantalla donde aterriza el usuario después del 302 redirect
- * del backend FastAPI.
+ * Esta página muestra SIEMPRE los enlaces de la campaña "7fitment".
+ * No depende de la URL, el campaign_id está definido internamente.
  *
- * Arquitectura:
- * - Server Component (RSC) por defecto → SEO y performance óptimos.
- * - GA4PageView es un Client Component mínimo que dispara el evento
- *   page_view sin bloquear el renderizado del servidor.
+ * Ruta: /enlaces
  */
 
 import type { Metadata } from "next";
@@ -17,19 +13,14 @@ import { ProfileHeader } from "@/components/ProfileHeader";
 import { LinkCard } from "@/components/LinkCard";
 import { GA4PageView } from "@/components/GA4PageView";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tipos de Next.js App Router
-// ─────────────────────────────────────────────────────────────────────────────
-interface PageProps {
-  params: Promise<{ campaign_id: string }>;
-}
+// Campaign ID hardcoded - siempre muestra los links de Leslye
+const CAMPAIGN_ID = "7fitment";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Metadata dinámica (Open Graph por campaña)
+// Metadata estática
 // ─────────────────────────────────────────────────────────────────────────────
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { campaign_id } = await params;
-  const campaign = getCampaignData(campaign_id);
+export async function generateMetadata(): Promise<Metadata> {
+  const campaign = getCampaignData(CAMPAIGN_ID);
 
   return {
     title: `${campaign.displayName} | QR-Hub`,
@@ -38,6 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: campaign.displayName,
       description: campaign.bio,
       type: "website",
+      url: `https://7fitment.com/enlaces`,
     },
   };
 }
@@ -45,14 +37,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 // ─────────────────────────────────────────────────────────────────────────────
 // Página
 // ─────────────────────────────────────────────────────────────────────────────
-export default async function CampaignPage({ params }: PageProps) {
-  const { campaign_id } = await params;
-  const campaign = getCampaignData(campaign_id);
+export default async function EnlacesPage() {
+  const campaign = getCampaignData(CAMPAIGN_ID);
 
   return (
     <main className="min-h-dvh flex flex-col items-center justify-start bg-[#0f0f0f] px-4 py-12">
       {/* Evento GA4 (Client Component sin UI) */}
-      <GA4PageView campaignId={campaign_id} />
+      <GA4PageView campaignId={CAMPAIGN_ID} />
 
       {/* Contenedor centrado Mobile-First, max ~400 px en desktop */}
       <div className="w-full max-w-sm flex flex-col gap-6">
