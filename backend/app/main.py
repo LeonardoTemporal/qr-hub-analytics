@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import redirect
+from app.routers import redirect, analytics
 
 logging.basicConfig(
     level=logging.INFO,
@@ -69,6 +69,7 @@ app.add_middleware(
 # Routers
 # ---------------------------------------------------------------------------
 app.include_router(redirect.router)
+app.include_router(analytics.router)
 
 
 # ---------------------------------------------------------------------------
