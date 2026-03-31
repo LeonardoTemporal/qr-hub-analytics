@@ -2,10 +2,12 @@
  * Dashboard de Analíticas – 7Fitment
  *
  * Panel profesional tipo SaaS Enterprise con:
+ * - Pantalla de login segura con contraseña
  * - KPIs en tarjetas minimalistas
  * - Gráfica principal de tendencias
  * - Distribuciones por device/os/browser
  * - Top ubicaciones geográficas
+ * - Header personalizado con saludo y logout
  */
 
 "use client";
@@ -23,20 +25,21 @@ import {
   Calendar,
   MapPin,
   Activity,
+  LogOut,
+  Lock,
 } from "lucide-react";
 import {
   LineChart,
   Line,
   BarChart,
   Bar,
-  PieChart as RechartsPieChart,
-  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend,
+  Cell,
+  Pie,
 } from "recharts";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -60,33 +63,31 @@ interface AnalyticsData {
 // Colores para gráficas
 // ─────────────────────────────────────────────────────────────────────────────
 const COLORS = {
-  primary: "#6366f1", // Indigo
-  secondary: "#8b5cf6", // Violet
-  accent: "#ec4899", // Pink
-  success: "#10b981", // Emerald
-  warning: "#f59e0b", // Amber
+  primary: "#6366f1",
+  secondary: "#8b5cf6",
+  accent: "#ec4899",
+  success: "#10b981",
+  warning: "#f59e0b",
   devices: ["#6366f1", "#8b5cf6", "#ec4899", "#10b981"],
   os: ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6"],
   browsers: ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"],
   countries: ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"],
 };
 
+const MASTER_PASSWORD = "7fitment2026";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Componentes de Tarjetas
 // ─────────────────────────────────────────────────────────────────────────────
-function KPICard({
-  title,
-  value,
-  icon: Icon,
-  trend,
-  color,
-}: {
+interface KPICardProps {
   title: string;
   value: string | number;
   icon: any;
   trend?: string;
   color: string;
-}) {
+}
+
+function KPICard({ title, value, icon: Icon, trend, color }: KPICardProps) {
   return (
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all duration-300">
       <div className="flex items-start justify-between">
@@ -113,15 +114,13 @@ function KPICard({
 // ─────────────────────────────────────────────────────────────────────────────
 // Componente de Lista de Ubicaciones
 // ─────────────────────────────────────────────────────────────────────────────
-function LocationList({
-  title,
-  icon: Icon,
-  locations,
-}: {
+interface LocationListProps {
   title: string;
   icon: any;
   locations: Array<{ name: string; value: number }>;
-}) {
+}
+
+function LocationList({ title, icon: Icon, locations }: LocationListProps) {
   const maxValue = Math.max(...locations.map((l) => l.value), 1);
 
   return (
@@ -159,14 +158,170 @@ function LocationList({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Componente de Login
+// ─────────────────────────────────────────────────────────────────────────────
+function LoginPage({ onLogin }: { onLogin: () => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(false);
+
+    setTimeout(() => {
+      if (password === MASTER_PASSWORD) {
+        onLogin();
+      } else {
+        setError(true);
+        setLoading(false);
+      }
+    }, 500);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo/Brand */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 mb-4">
+            <span className="text-4xl font-bold text-white">7F</span>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">7Fitment Analytics</h1>
+          <p className="text-zinc-400">Dashboard de Analíticas</p>
+        </div>
+
+        {/* Login Card */}
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-indigo-500/10 rounded-xl">
+              <Lock size={24} className="text-indigo-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-white">Acceso Seguro</h2>
+              <p className="text-sm text-zinc-400">Ingresa tu contrasena para continuar</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Ingresa tu contraseña"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                autoFocus
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+                <p className="text-sm text-red-400 text-center">
+                  Contraseña incorrecta. Por favor, intenta nuevamente.
+                </p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !password}
+              className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Verificando..." : "Ingresar"}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-xs text-zinc-500">
+              Powered by{" "}
+              <span className="text-zinc-400">QR-Hub Analytics</span>
+              {" "}|{" "}
+              <span className="text-zinc-400">by HellSpawn</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Header del Dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+interface DashboardHeaderProps {
+  ownerName: string;
+  onLogout: () => void;
+}
+
+function DashboardHeader({ ownerName, onLogout }: DashboardHeaderProps) {
+  return (
+    <header className="bg-white/5 backdrop-blur-sm border-b border-white/10 mb-8">
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          {/* Left Side - Logo & Title */}
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
+              <span className="text-lg font-bold text-white">7F</span>
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-white">
+                ¡Hola, {ownerName}!
+              </h1>
+              <p className="text-sm text-zinc-400">Bienvenida a tu panel de analíticas</p>
+            </div>
+          </div>
+
+          {/* Right Side - Logout */}
+          <button
+            onClick={onLogout}
+            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-zinc-300 hover:text-white transition-all duration-200"
+          >
+            <LogOut size={18} />
+            <span className="hidden sm:inline">Cerrar sesión</span>
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Página Principal del Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Check authentication on mount
   useEffect(() => {
+    const auth = sessionStorage.getItem("dashboard_auth");
+    if (auth === "true") {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = () => {
+    sessionStorage.setItem("dashboard_auth", "true");
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("dashboard_auth");
+    setIsAuthenticated(false);
+    setData(null);
+  };
+
+  // Fetch analytics data when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
     async function fetchAnalytics() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
@@ -183,8 +338,14 @@ export default function DashboardPage() {
     }
 
     fetchAnalytics();
-  }, []);
+  }, [isAuthenticated]);
 
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
+  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -196,6 +357,7 @@ export default function DashboardPage() {
     );
   }
 
+  // Show error state
   if (error || !data) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -203,15 +365,24 @@ export default function DashboardPage() {
           <BarChart3 className="mx-auto mb-4 text-red-400" size={48} />
           <h2 className="text-xl font-semibold text-white mb-2">Error</h2>
           <p className="text-zinc-400">{error || "No se pudieron cargar los datos"}</p>
+          <button
+            onClick={handleLogout}
+            className="mt-4 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-zinc-300 transition-all"
+          >
+            Volver al inicio
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* ── Header ──────────────────────────────────────────────────── */}
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Header */}
+      <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
+
+      <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+        {/* Page Title */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
@@ -225,7 +396,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── KPIs Grid ───────────────────────────────────────────────── */}
+        {/* KPIs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard
             title="Total Escaneos"
@@ -254,7 +425,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* ── Main Chart - Time Series ──────────────────────────────────── */}
+        {/* Main Chart - Time Series */}
         <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
           <div className="flex items-center gap-2 mb-6">
             <BarChart3 size={20} className="text-indigo-400" />
@@ -273,10 +444,7 @@ export default function DashboardPage() {
                     return `${date.getDate()}/${date.getMonth() + 1}`;
                   }}
                 />
-                <YAxis
-                  stroke="#9ca3af"
-                  style={{ fontSize: "12px" }}
-                />
+                <YAxis stroke="#9ca3af" style={{ fontSize: "12px" }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "#1f2937",
@@ -303,7 +471,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Distribution Charts ──────────────────────────────────────────── */}
+        {/* Distribution Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Device Distribution */}
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
@@ -313,32 +481,30 @@ export default function DashboardPage() {
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Pie
-                    data={data.device_distribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {data.device_distribution.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS.devices[index % COLORS.devices.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
-                      borderRadius: "8px",
-                      color: "#fff",
-                    }}
-                  />
-                </RechartsPieChart>
+                <Pie>
+                  data={data.device_distribution}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {data.device_distribution.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS.devices[index % COLORS.devices.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1f2937",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                    color: "#fff",
+                  }}
+                />
               </ResponsiveContainer>
             </div>
             <div className="mt-4 space-y-2">
@@ -404,32 +570,30 @@ export default function DashboardPage() {
             </div>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Pie
-                    data={data.browser_distribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {data.browser_distribution.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS.browsers[index % COLORS.browsers.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
-                      borderRadius: "8px",
-                      color: "#fff",
-                    }}
-                  />
-                </RechartsPieChart>
+                <Pie>
+                  data={data.browser_distribution}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {data.browser_distribution.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS.browsers[index % COLORS.browsers.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1f2937",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                    color: "#fff",
+                  }}
+                />
               </ResponsiveContainer>
             </div>
             <div className="mt-4 space-y-2">
@@ -452,7 +616,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Location Lists ──────────────────────────────────────────────────── */}
+        {/* Location Lists */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <LocationList
             title="Top Países"
@@ -466,7 +630,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* ── Footer ────────────────────────────────────────────────────────── */}
+        {/* Footer */}
         <div className="text-center py-8">
           <p className="text-xs text-zinc-600">
             Powered by{" "}
