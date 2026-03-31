@@ -326,13 +326,24 @@ export default function DashboardPage() {
     async function fetchAnalytics() {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-        const response = await fetch(`${apiUrl}/analytics/7fitment`);
-        if (!response.ok) throw new Error("Error fetching analytics");
+        const url = `${apiUrl}/analytics/7fitment`;
+        console.log("Fetching analytics from:", url);
+
+        const response = await fetch(url);
+        console.log("Response status:", response.status, response.statusText);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error response body:", errorText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
         const analyticsData = await response.json();
+        console.log("Analytics data received:", analyticsData);
         setData(analyticsData);
       } catch (err) {
         console.error("Error loading analytics:", err);
-        setError("Error cargando analíticas");
+        setError(`Error cargando analíticas: ${err instanceof Error ? err.message : "Unknown error"}`);
       } finally {
         setLoading(false);
       }
