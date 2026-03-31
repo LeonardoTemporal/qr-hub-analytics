@@ -134,5 +134,5 @@ async def redirect_campaign(
         user_agent_string=user_agent_string,
     )
 
-    target_url = f"{settings.FRONTEND_URL}/{campaign_id}"
+    target_url = f"{settings.FRONTEND_URL}/enlaces/{campaign_id}"
     return RedirectResponse(url=target_url, status_code=302)

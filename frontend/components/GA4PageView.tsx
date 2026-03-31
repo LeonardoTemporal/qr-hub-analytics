@@ -27,7 +27,7 @@ export function GA4PageView({ campaignId }: GA4PageViewProps) {
 
     window.gtag("event", "page_view", {
       page_title: `Campaign: ${campaignId}`,
-      page_path: `/${campaignId}`,
+      page_path: `/enlaces/${campaignId}`,
       campaign_id: campaignId,
     });
   }, [campaignId]);
