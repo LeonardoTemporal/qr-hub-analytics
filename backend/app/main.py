@@ -64,6 +64,7 @@ app.add_middleware(
         "http://localhost:3000",
         "https://7fitment.com",
         "https://www.7fitment.com",
+        "https://admin.7fitment.com",
     ],
     allow_credentials=True,
     allow_methods=["GET", "HEAD", "OPTIONS"],
@@ -74,7 +75,7 @@ app.add_middleware(
 # Routers
 # ---------------------------------------------------------------------------
 app.include_router(redirect.router)
-app.include_router(analytics.router)
+app.include_router(analytics.router, prefix="/api")
 
 
 # ---------------------------------------------------------------------------

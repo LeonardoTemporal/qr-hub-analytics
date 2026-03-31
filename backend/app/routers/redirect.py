@@ -123,6 +123,7 @@ async def redirect_campaign(
 
     - Devuelve **302 redirect** de forma inmediata (latencia cero para el usuario).
     - Encola en segundo plano el registro de analíticas sin bloquear la respuesta.
+    - Siempre redirige a https://7fitment.com/enlaces (URL de producción).
     """
     ip_address = _get_client_ip(request)
     user_agent_string = request.headers.get("User-Agent", "")
@@ -134,5 +135,6 @@ async def redirect_campaign(
         user_agent_string=user_agent_string,
     )
 
-    target_url = f"{settings.FRONTEND_URL}/enlaces/{campaign_id}"
+    # Siempre redirigimos a la URL de producción
+    target_url = "https://7fitment.com/enlaces"
     return RedirectResponse(url=target_url, status_code=302)
