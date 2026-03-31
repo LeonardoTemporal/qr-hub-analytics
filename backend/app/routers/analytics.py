@@ -10,7 +10,7 @@ import logging
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
@@ -41,14 +41,14 @@ async def get_analytics(campaign_id: str):
         # KPIs Generales
         # ─────────────────────────────────────────────────────────────────────
         total_scans_result = await session.execute(
-            func.count(Scan.id).where(Scan.campaign_id == campaign_id)
+            select(func.count(Scan.id)).where(Scan.campaign_id == campaign_id)
         )
         total_scans = total_scans_result.scalar() or 0
 
         # Últimos 7 días para KPIs recientes
         seven_days_ago = datetime.now() - timedelta(days=7)
         recent_scans_result = await session.execute(
-            func.count(Scan.id).where(
+            select(func.count(Scan.id)).where(
                 Scan.campaign_id == campaign_id,
                 Scan.scanned_at >= seven_days_ago,
             )
@@ -61,17 +61,16 @@ async def get_analytics(campaign_id: str):
         thirty_days_ago = datetime.now() - timedelta(days=30)
 
         time_series_result = await session.execute(
-            func.date_trunc("day", Scan.scanned_at)
-            .label("date"),
-            func.count(Scan.id).label("count"),
-        )
-        .where(
-            Scan.campaign_id == campaign_id,
-            Scan.scanned_at >= thirty_days_ago,
-        )
-        .group_by(func.date_trunc("day", Scan.scanned_at))
-        .order_by(func.date_trunc("day", Scan.scanned_at))
-        .all()
+            select(
+                func.date_trunc("day", Scan.scanned_at).label("date"),
+                func.count(Scan.id).label("count"),
+            )
+            .where(
+                Scan.campaign_id == campaign_id,
+                Scan.scanned_at >= thirty_days_ago,
+            )
+            .group_by(func.date_trunc("day", Scan.scanned_at))
+            .order_by(func.date_trunc("day", Scan.scanned_at))
         )
 
         time_series = [
@@ -82,12 +81,10 @@ async def get_analytics(campaign_id: str):
         # Distribución por Device Type
         # ─────────────────────────────────────────────────────────────────────
         device_dist_result = await session.execute(
-            func.count(Scan.id).label("count"),
-        )
-        .where(Scan.campaign_id == campaign_id, Scan.device_type.isnot(None))
-        .group_by(Scan.device_type)
-        .order_by(func.count(Scan.id).desc())
-        .all()
+            select(Scan.device_type, func.count(Scan.id).label("count"))
+            .where(Scan.campaign_id == campaign_id, Scan.device_type.isnot(None))
+            .group_by(Scan.device_type)
+            .order_by(func.count(Scan.id).desc())
         )
 
         device_distribution = [
@@ -99,13 +96,11 @@ async def get_analytics(campaign_id: str):
         # Distribución por OS
         # ─────────────────────────────────────────────────────────────────────
         os_dist_result = await session.execute(
-            func.count(Scan.id).label("count"),
-        )
-        .where(Scan.campaign_id == campaign_id, Scan.os.isnot(None))
-        .group_by(Scan.os)
-        .order_by(func.count(Scan.id).desc())
-        .limit(10)
-        .all()
+            select(Scan.os, func.count(Scan.id).label("count"))
+            .where(Scan.campaign_id == campaign_id, Scan.os.isnot(None))
+            .group_by(Scan.os)
+            .order_by(func.count(Scan.id).desc())
+            .limit(10)
         )
 
         os_distribution = [
@@ -116,13 +111,11 @@ async def get_analytics(campaign_id: str):
         # Distribución por Browser
         # ─────────────────────────────────────────────────────────────────────
         browser_dist_result = await session.execute(
-            func.count(Scan.id).label("count"),
-        )
-        .where(Scan.campaign_id == campaign_id, Scan.browser.isnot(None))
-        .group_by(Scan.browser)
-        .order_by(func.count(Scan.id).desc())
-        .limit(10)
-        .all()
+            select(Scan.browser, func.count(Scan.id).label("count"))
+            .where(Scan.campaign_id == campaign_id, Scan.browser.isnot(None))
+            .group_by(Scan.browser)
+            .order_by(func.count(Scan.id).desc())
+            .limit(10)
         )
 
         browser_distribution = [
@@ -134,13 +127,11 @@ async def get_analytics(campaign_id: str):
         # Top Países
         # ─────────────────────────────────────────────────────────────────────
         countries_result = await session.execute(
-            func.count(Scan.id).label("count"),
-        )
-        .where(Scan.campaign_id == campaign_id, Scan.country.isnot(None))
-        .group_by(Scan.country)
-        .order_by(func.count(Scan.id).desc())
-        .limit(10)
-        .all()
+            select(Scan.country, func.count(Scan.id).label("count"))
+            .where(Scan.campaign_id == campaign_id, Scan.country.isnot(None))
+            .group_by(Scan.country)
+            .order_by(func.count(Scan.id).desc())
+            .limit(10)
         )
 
         top_countries = [
@@ -152,13 +143,11 @@ async def get_analytics(campaign_id: str):
         # Top Ciudades
         # ─────────────────────────────────────────────────────────────────────
         cities_result = await session.execute(
-            func.count(Scan.id).label("count"),
-        )
-        .where(Scan.campaign_id == campaign_id, Scan.city.isnot(None))
-        .group_by(Scan.city)
-        .order_by(func.count(Scan.id).desc())
-        .limit(10)
-        .all()
+            select(Scan.city, func.count(Scan.id).label("count"))
+            .where(Scan.campaign_id == campaign_id, Scan.city.isnot(None))
+            .group_by(Scan.city)
+            .order_by(func.count(Scan.id).desc())
+            .limit(10)
         )
 
         top_cities = [
