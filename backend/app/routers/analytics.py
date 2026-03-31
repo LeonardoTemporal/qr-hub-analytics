@@ -10,7 +10,7 @@ import logging
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
@@ -69,8 +69,8 @@ async def get_analytics(campaign_id: str):
                 Scan.campaign_id == campaign_id,
                 Scan.scanned_at >= thirty_days_ago,
             )
-            .group_by(func.date_trunc("day", Scan.scanned_at))
-            .order_by(func.date_trunc("day", Scan.scanned_at))
+            .group_by("date")
+            .order_by("date")
         )
 
         time_series = [
