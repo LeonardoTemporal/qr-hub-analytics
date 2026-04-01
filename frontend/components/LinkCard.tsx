@@ -1,9 +1,12 @@
 /**
- * LinkCard – botón de enlace premium estilo glassmorphism
+ * LinkCard - Boton de enlace premium
  *
- * Premium black/white aesthetic
- * Diseño Mobile-First con animaciones suaves
+ * Estetica Luxury Automotive (Porsche/Apple)
+ * Glassmorphism sutil con animaciones fluidas
+ * Totalmente responsive (mobile-first)
  */
+
+"use client";
 
 import {
   Globe,
@@ -17,7 +20,6 @@ import {
 import { motion } from "framer-motion";
 import type { SocialLink } from "@/types/campaign";
 
-// Mapa de componentes de icono indexado por nombre
 const ICON_MAP = {
   MessageCircle,
   Instagram,
@@ -43,33 +45,44 @@ export function LinkCard({ link }: LinkCardProps) {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       className={[
-        // Base
-        "flex items-center gap-4 w-full min-h-[56px] px-6 py-4",
-        "rounded-2xl border border-white/10",
-        "text-white font-medium text-sm tracking-wide",
-        // Glassmorphism premium
-        "bg-white/5 backdrop-blur-sm",
-        // Interacción
-        "transition-all duration-200 ease-in-out",
-        "hover:bg-white/10 hover:border-white/20 hover:shadow-xl",
-        // Accesibilidad
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black",
+        // Base Layout
+        "group flex items-center gap-4 w-full min-h-[60px] sm:min-h-[64px] px-5 sm:px-6 py-4",
+        "rounded-2xl border border-white/[0.08]",
+        "text-white font-medium text-sm sm:text-base tracking-wide",
+        // Glassmorphism
+        "bg-white/[0.03] backdrop-blur-sm",
+        // Interaction States
+        "transition-all duration-300 ease-out",
+        "hover:bg-white/[0.08] hover:border-white/[0.15] hover:shadow-xl hover:shadow-white/[0.02]",
+        // Focus Accessibility
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-black",
       ].join(" ")}
     >
-      <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 shrink-0 border border-white/10">
-        <Icon size={18} strokeWidth={2} className="text-white" aria-hidden="true" />
+      {/* Icon Container */}
+      <span className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/[0.05] shrink-0 border border-white/[0.08] transition-all duration-300 group-hover:bg-white/[0.1] group-hover:border-white/[0.15]">
+        <Icon 
+          size={18} 
+          strokeWidth={1.5} 
+          className="text-white/80 group-hover:text-white transition-colors duration-300" 
+          aria-hidden="true" 
+        />
       </span>
-      <span className="flex-1">{link.label}</span>
-      {/* Flecha sutil de navegación */}
+      
+      {/* Label */}
+      <span className="flex-1 text-white/90 group-hover:text-white transition-colors duration-300">
+        {link.label}
+      </span>
+      
+      {/* Arrow Indicator */}
       <svg
         aria-hidden="true"
-        className="opacity-20 shrink-0"
+        className="opacity-30 shrink-0 transition-all duration-300 group-hover:opacity-60 group-hover:translate-x-0.5"
         width="14"
         height="14"
         viewBox="0 0 14 14"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
