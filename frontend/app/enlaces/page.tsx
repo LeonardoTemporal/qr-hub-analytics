@@ -44,56 +44,61 @@ export default async function EnlacesPage() {
   const campaign = getCampaignData(CAMPAIGN_ID);
 
   return (
-    <main className="min-h-screen bg-black flex flex-col items-center justify-start px-4 sm:px-6 py-12 sm:py-16">
+    <main className="min-h-screen bg-black flex flex-col">
       {/* GA4 Event Tracker */}
       <GA4PageView campaignId={CAMPAIGN_ID} />
 
-      {/* Main Container - Mobile-First */}
-      <div className="w-full max-w-sm sm:max-w-md flex flex-col gap-8 sm:gap-10 flex-grow">
-        
-        {/* Profile Header Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          <ProfileHeader
-            displayName={campaign.displayName}
-            bio={campaign.bio}
-            avatarUrl={campaign.avatarUrl}
-          />
-        </motion.div>
+      {/* Header Spacer - Visual Balance */}
+      <div className="h-16 sm:h-20 lg:h-24 flex-shrink-0" />
 
-        {/* Links Section with Stagger Animation */}
-        <motion.nav
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          aria-label={`Enlaces de ${campaign.displayName}`}
-          className="flex flex-col gap-3 sm:gap-4"
-        >
-          {campaign.links.map((link) => (
-            <motion.div key={link.id} variants={itemVariants}>
-              <LinkCard link={link} />
-            </motion.div>
-          ))}
-        </motion.nav>
+      {/* Main Content - Centered Container with Flex Grow */}
+      <div className="flex-grow flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
+        <div className="w-full max-w-sm sm:max-w-md flex flex-col gap-10 sm:gap-12">
+          
+          {/* Profile Header Section */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <ProfileHeader
+              displayName={campaign.displayName}
+              bio={campaign.bio}
+              avatarUrl={campaign.avatarUrl}
+            />
+          </motion.div>
 
-        {/* Footer - Minimal */}
-        <motion.footer 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          className="text-center mt-auto pt-8 sm:pt-12"
-        >
-          <p className="text-xs text-zinc-600 select-none">
-            Powered by{" "}
-            <span className="text-zinc-500">QR-Hub Analytics</span>
-            {" | "}
-            <span className="gradient-text">by HellSpawn</span>
-          </p>
-        </motion.footer>
+          {/* Links Section with Stagger Animation */}
+          <motion.nav
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            aria-label={`Enlaces de ${campaign.displayName}`}
+            className="flex flex-col gap-4 sm:gap-5"
+          >
+            {campaign.links.map((link) => (
+              <motion.div key={link.id} variants={itemVariants}>
+                <LinkCard link={link} />
+              </motion.div>
+            ))}
+          </motion.nav>
+        </div>
       </div>
+
+      {/* Footer - Anchored at Bottom */}
+      <motion.footer 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+        className="flex-shrink-0 border-t border-white/[0.05] py-6 sm:py-8"
+      >
+        <p className="text-xs text-zinc-600 select-none text-center">
+          Powered by{" "}
+          <span className="text-zinc-500">QR-Hub Analytics</span>
+          {" | "}
+          <span className="gradient-text">by HellSpawn</span>
+        </p>
+      </motion.footer>
 
       {/* Background Gradients - Subtle White */}
       <div
