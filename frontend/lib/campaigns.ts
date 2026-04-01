@@ -31,7 +31,7 @@ const CAMPAIGNS: Record<string, CampaignData> = {
       {
         id: "maps",
         label: "Visítanos en Satélite",
-        href: "",
+        href: "https://maps.app.goo.gl/yokwhFdPw2dJL5FWA",
         icon: "MapPin",
         colorClass: "bg-zinc-500/10 hover:bg-zinc-500/20",
       },
