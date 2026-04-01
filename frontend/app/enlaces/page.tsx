@@ -13,6 +13,7 @@ import { getCampaignData } from "@/lib/campaigns";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { LinkCard } from "@/components/LinkCard";
 import { GA4PageView } from "@/components/GA4PageView";
+import { EnlacesHeader } from "@/components/EnlacesHeader";
 import { motion } from "framer-motion";
 
 const CAMPAIGN_ID = "7fitment";
@@ -48,11 +49,14 @@ export default async function EnlacesPage() {
       {/* GA4 Event Tracker */}
       <GA4PageView campaignId={CAMPAIGN_ID} />
 
-      {/* Header Spacer - Visual Balance */}
-      <div className="h-16 sm:h-20 lg:h-24 flex-shrink-0" />
+      {/* Fixed Sticky Header */}
+      <EnlacesHeader />
+
+      {/* Header Spacer - Compensates for Fixed Header */}
+      <div className="h-16 sm:h-18 lg:h-20 flex-shrink-0" />
 
       {/* Main Content - Centered Container with Flex Grow */}
-      <div className="flex-grow flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
+      <div className="flex-grow flex items-center justify-center px-4 sm:px-6 py-8 sm:py-12 pb-24">
         <div className="w-full max-w-sm sm:max-w-md flex flex-col gap-10 sm:gap-12">
           
           {/* Profile Header Section */}
@@ -85,12 +89,12 @@ export default async function EnlacesPage() {
         </div>
       </div>
 
-      {/* Footer - Anchored at Bottom */}
+      {/* Fixed Sticky Footer - Always Visible */}
       <motion.footer 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
-        className="flex-shrink-0 border-t border-white/[0.05] py-6 sm:py-8"
+        className="fixed bottom-0 left-0 right-0 z-40 bg-black/80 backdrop-blur-xl border-t border-white/[0.08] py-4 sm:py-5"
       >
         <p className="text-xs text-zinc-600 select-none text-center">
           Powered by{" "}
