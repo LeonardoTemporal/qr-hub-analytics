@@ -2,12 +2,10 @@
  * Dashboard de Analíticas – 7Fitment
  *
  * Panel profesional premium con animaciones Framer Motion
- * - Pantalla de login segura con contraseña
- * - KPIs con micro-interacciones y stagger animations
- * - Gráfica principal de tendencias con scroll-triggered
- * - Distribuciones por device/os/browser
- * - Top ubicaciones geográficas
- * - Header personalizado con gradient text animado
+ * Estética Negro/Blanco automotriz de lujo
+ * - Scroll-triggered animations
+ * - Number counter animations
+ * - Header separado con espacio premium
  */
 
 "use client";
@@ -42,13 +40,8 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import {
-  motion,
-  useInView,
-  AnimatePresence,
-  Variants as MotionVariants,
-  Transition,
-} from "framer-motion";
+import { motion, useInView, AnimatePresence } from "framer-motion";
+import { animate } from "framer-motion";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -68,18 +61,18 @@ interface AnalyticsData {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Colores para gráficas - Paleta Premium 7Fitment
+// Colores Premium - Estética Negro/Blanco Automotriz
 // ─────────────────────────────────────────────────────────────────────────────
 const COLORS = {
-  primary: "#6366f1",
-  secondary: "#8b5cf6",
-  accent: "#ec4899",
+  primary: "#ffffff",
+  secondary: "#a1a1aa",
+  accent: "#ffffff",
   success: "#10b981",
   warning: "#f59e0b",
-  devices: ["#6366f1", "#8b5cf6", "#ec4899", "#10b981"],
-  os: ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#3b82f6"],
-  browsers: ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"],
-  countries: ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981"],
+  devices: ["#ffffff", "#d4d4d8", "#a1a1aa", "#71717a"],
+  os: ["#ffffff", "#d4d4d8", "#a1a1aa", "#71717a", "#52525b", "#3f3f46"],
+  browsers: ["#ffffff", "#d4d4d8", "#a1a1aa", "#71717a", "#52525b"],
+  countries: ["#ffffff", "#d4d4d8", "#a1a1aa", "#71717a", "#52525b"],
 };
 
 const MASTER_PASSWORD = "7fitment2026";
@@ -87,7 +80,7 @@ const MASTER_PASSWORD = "7fitment2026";
 // ─────────────────────────────────────────────────────────────────────────────
 // Animations - Framer Motion Variants
 // ─────────────────────────────────────────────────────────────────────────────
-const containerVariants: MotionVariants = {
+const containerVariants = {
   hidden: {},
   visible: {
     transition: {
@@ -96,7 +89,7 @@ const containerVariants: MotionVariants = {
   },
 };
 
-const itemVariants: MotionVariants = {
+const itemVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
@@ -109,17 +102,64 @@ const itemVariants: MotionVariants = {
   },
 };
 
-const fadeInUp: MotionVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.6,
-      ease: "easeOut" as const,
-    },
-  },
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// Number Counter Animation Component
+// ─────────────────────────────────────────────────────────────────────────────
+function AnimatedNumber({ value }: { value: number }) {
+  const nodeRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const node = nodeRef.current;
+    if (!node) return;
+
+    const controls = animate(0, value, {
+      duration: 1.5,
+      ease: [0.25, 0.1, 0.25, 1],
+      onUpdate: (latest) => {
+        node.textContent = Math.round(latest).toString();
+      },
+    });
+
+    return controls.stop;
+  }, [value]);
+
+  return <span ref={nodeRef}>0</span>;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scroll-Triggered Section Component
+// ─────────────────────────────────────────────────────────────────────────────
+function ScrollSection({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, {
+    once: true,
+    margin: "-100px",
+  });
+
+  return (
+    <motion.section
+      ref={ref}
+      className={className}
+      initial={{ opacity: 0, y: 50 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+      transition={{
+        duration: 0.8,
+        delay,
+        ease: [0.25, 0.1, 0.25, 1],
+      }}
+    >
+      {children}
+    </motion.section>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Componentes de Tarjetas Mejoradas
@@ -142,7 +182,7 @@ function KPICard({ title, value, icon: Icon, trend, color, index }: KPICardProps
         y: -4,
         transition: { type: "spring", stiffness: 300, damping: 20 },
       }}
-      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer"
+      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer group"
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
@@ -155,7 +195,7 @@ function KPICard({ title, value, icon: Icon, trend, color, index }: KPICardProps
             transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
             className="text-3xl font-bold text-white"
           >
-            {value}
+            {typeof value === "number" ? <AnimatedNumber value={value} /> : value}
           </motion.p>
           {trend && (
             <motion.p
@@ -172,7 +212,7 @@ function KPICard({ title, value, icon: Icon, trend, color, index }: KPICardProps
         <motion.div
           whileHover={{ rotate: 360, scale: 1.1 }}
           transition={{ duration: 0.6, type: "spring" }}
-          className={`p-3 rounded-xl ${color}`}
+          className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform`}
         >
           <Icon size={24} className="text-white" />
         </motion.div>
@@ -236,7 +276,7 @@ function LocationList({ title, icon: Icon, locations }: LocationListProps) {
                   style={{ transformOrigin: "left" }}
                 >
                   <motion.div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                    className="h-full bg-gradient-to-r from-white via-zinc-300 to-zinc-400 rounded-full"
                     style={{ width: `${(location.value / maxValue) * 100}%` }}
                   />
                 </motion.div>
@@ -277,7 +317,7 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4"
+      className="min-h-screen bg-black flex items-center justify-center p-4"
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
@@ -291,9 +331,9 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
             initial={{ rotate: 0 }}
             animate={{ rotate: 360 }}
             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 mb-4 shadow-2xl"
+            className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white mb-4 shadow-2xl"
           >
-            <span className="text-4xl font-bold text-white">7F</span>
+            <span className="text-4xl font-bold text-black">7F</span>
           </motion.div>
           <h1 className="text-3xl font-bold text-white mb-2">
             <span className="gradient-text">7Fitment Analytics</span>
@@ -310,9 +350,9 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
             <motion.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-              className="p-3 bg-indigo-500/10 rounded-xl"
+              className="p-3 bg-white/10 rounded-xl"
             >
-              <Lock size={24} className="text-indigo-400" />
+              <Lock size={24} className="text-white" />
             </motion.div>
             <div>
               <h2 className="text-xl font-semibold text-white">Acceso Seguro</h2>
@@ -334,7 +374,7 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Ingresa tu contraseña"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all hover:bg-white/10"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all hover:bg-white/10"
                 autoFocus
               />
             </motion.div>
@@ -359,7 +399,7 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
               disabled={loading || !password}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className={`w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${
+              className={`w-full py-3 bg-white hover:bg-zinc-200 text-black font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg ${
                 loading ? "animate-pulse" : ""
               }`}
             >
@@ -410,26 +450,26 @@ function DashboardHeader({ ownerName, onLogout }: DashboardHeaderProps) {
       transition={{ type: "spring", stiffness: 100, damping: 20 }}
       className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-slate-900/80 backdrop-blur-xl border-b border-white/10 shadow-xl"
+          ? "bg-black/80 backdrop-blur-xl border-b border-white/10 shadow-xl"
           : "bg-transparent border-b border-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
           {/* Left Side - Logo & Title */}
           <div className="flex items-center gap-4">
             <motion.div
               whileHover={{ rotate: 180, scale: 1.1 }}
               transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              className="hidden sm:flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 shadow-lg"
+              className="hidden sm:flex items-center justify-center w-14 h-14 rounded-full bg-white shadow-lg"
             >
-              <span className="text-lg font-bold text-white">7F</span>
+              <span className="text-xl font-bold text-black">7F</span>
             </motion.div>
             <div>
               <motion.h1
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="text-lg font-semibold text-white"
+                className="text-xl font-semibold text-white"
               >
                 ¡Hola, <span className="gradient-text">{ownerName}</span>!
               </motion.h1>
@@ -444,7 +484,7 @@ function DashboardHeader({ ownerName, onLogout }: DashboardHeaderProps) {
             onClick={onLogout}
             whileHover={{ scale: 1.05, x: 2 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-zinc-300 hover:text-white transition-all duration-200"
+            className="flex items-center gap-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-zinc-300 hover:text-white transition-all duration-200"
           >
             <LogOut size={18} />
             <span className="hidden sm:inline">Cerrar sesión</span>
@@ -528,7 +568,7 @@ export default function DashboardPage() {
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -540,11 +580,11 @@ export default function DashboardPage() {
             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
             className="relative"
           >
-            <Activity className="mx-auto mb-4 text-indigo-500" size={32} />
+            <Activity className="mx-auto mb-4 text-white" size={32} />
             <motion.div
               animate={{ scale: [1, 1.5, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
-              className="absolute inset-0 rounded-full bg-indigo-500/20"
+              className="absolute inset-0 rounded-full bg-white/20"
             />
           </motion.div>
           <p className="text-zinc-400">Cargando analíticas...</p>
@@ -556,14 +596,14 @@ export default function DashboardPage() {
   // Show error state
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1, rotate: [0, -10, 10, 0] }}
             transition={{ type: "spring", stiffness: 200, damping: 10 }}
           >
-            <BarChart3 className="mx-auto mb-4 text-red-400" size={48} />
+            <BarChart3 className="mx-auto mb-4 text-white" size={48} />
           </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: -20 }}
@@ -597,11 +637,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <main className="min-h-screen bg-black">
       {/* Header */}
       <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
 
-      <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+      {/* Contenido con espacio extra */}
+      <div className="max-w-7xl mx-auto px-4 py-12 md:py-16 space-y-12">
         {/* Page Title */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -610,10 +651,10 @@ export default function DashboardPage() {
           className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
         >
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
               <span className="gradient-text">7Fitment Analytics</span>
             </h1>
-            <p className="text-zinc-400">
+            <p className="text-zinc-400 text-lg">
               Métricas en tiempo real de tus escaneos QR
             </p>
           </div>
@@ -621,9 +662,9 @@ export default function DashboardPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center gap-2 text-xs text-zinc-500 bg-white/5 px-4 py-2 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-default"
+            className="flex items-center gap-2 text-sm text-zinc-500 bg-white/5 px-5 py-2.5 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-default"
           >
-            <Calendar size={14} />
+            <Calendar size={16} />
             <span>Últimos 30 días</span>
           </motion.div>
         </motion.div>
@@ -633,13 +674,13 @@ export default function DashboardPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
         >
           <KPICard
             title="Total Escaneos"
             value={data.kpis.total_scans}
             icon={TrendingUp}
-            color="bg-gradient-to-br from-indigo-500 to-purple-600"
+            color="bg-white"
             index={0}
           />
           <KPICard
@@ -647,88 +688,80 @@ export default function DashboardPage() {
             value={data.kpis.recent_scans_7d}
             icon={Activity}
             trend="+12.5%"
-            color="bg-gradient-to-br from-emerald-500 to-teal-600"
+            color="bg-zinc-200"
             index={1}
           />
           <KPICard
             title="Dispositivos"
             value={data.device_distribution.length}
             icon={Smartphone}
-            color="bg-gradient-to-br from-blue-500 to-cyan-600"
+            color="bg-zinc-400"
             index={2}
           />
           <KPICard
             title="Países"
             value={data.top_countries.length}
             icon={Globe}
-            color="bg-gradient-to-br from-purple-500 to-pink-600"
+            color="bg-zinc-600"
             index={3}
           />
         </motion.div>
 
-        {/* Main Chart - Time Series */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
-        >
-          <div className="flex items-center gap-2 mb-6">
-            <motion.div
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-            >
-              <BarChart3 size={20} className="text-indigo-400" />
-            </motion.div>
-            <h2 className="text-lg font-semibold text-white">Tendencia de Escaneos</h2>
+        {/* Main Chart - Time Series con Scroll Trigger */}
+        <ScrollSection delay={0.2}>
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+            <div className="flex items-center gap-2 mb-6">
+              <motion.div
+                animate={{ rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+              >
+                <BarChart3 size={20} className="text-white" />
+              </motion.div>
+              <h2 className="text-lg font-semibold text-white">Tendencia de Escaneos</h2>
+            </div>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data.time_series}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#71717a"
+                    style={{ fontSize: "12px" }}
+                    tickFormatter={(dateStr) => {
+                      const date = new Date(dateStr);
+                      return `${date.getDate()}/${date.getMonth() + 1}`;
+                    }}
+                  />
+                  <YAxis stroke="#71717a" style={{ fontSize: "12px" }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#18181b",
+                      border: "1px solid #27272a",
+                      borderRadius: "8px",
+                      color: "#fff",
+                    }}
+                    labelFormatter={(dateStr) => {
+                      const date = new Date(dateStr);
+                      return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+                    }}
+                    itemStyle={{ color: "#a1a1aa" }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="scans"
+                    stroke="#ffffff"
+                    strokeWidth={2}
+                    dot={{ fill: "#ffffff", r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.time_series}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis
-                  dataKey="date"
-                  stroke="#9ca3af"
-                  style={{ fontSize: "12px" }}
-                  tickFormatter={(dateStr) => {
-                    const date = new Date(dateStr);
-                    return `${date.getDate()}/${date.getMonth() + 1}`;
-                  }}
-                />
-                <YAxis stroke="#9ca3af" style={{ fontSize: "12px" }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1f2937",
-                    border: "1px solid #374151",
-                    borderRadius: "8px",
-                    color: "#fff",
-                  }}
-                  labelFormatter={(dateStr) => {
-                    const date = new Date(dateStr);
-                    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-                  }}
-                  itemStyle={{ color: "#9ca3af" }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="scans"
-                  stroke="#6366f1"
-                  strokeWidth={2}
-                  dot={{ fill: "#6366f1", r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+        </ScrollSection>
 
-        {/* Distribution Charts */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-          className="grid grid-cols-1 lg:grid-cols-3 gap-4"
-        >
+        {/* Distribution Charts con Scroll Trigger */}
+        <ScrollSection delay={0.4} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Device Distribution */}
           <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
             <div className="flex items-center gap-2 mb-6">
@@ -756,8 +789,8 @@ export default function DashboardPage() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
+                      backgroundColor: "#18181b",
+                      border: "1px solid #27272a",
                       borderRadius: "8px",
                       color: "#fff",
                     }}
@@ -800,32 +833,24 @@ export default function DashboardPage() {
                   data={data.os_distribution.slice(0, 5)}
                   margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
                 >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#374151"
-                    horizontal={false}
-                  />
-                  <XAxis type="number" stroke="#9ca3af" style={{ fontSize: "11px" }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
+                  <XAxis type="number" stroke="#71717a" style={{ fontSize: "11px" }} />
                   <YAxis
                     dataKey="name"
                     type="category"
-                    stroke="#9ca3af"
+                    stroke="#71717a"
                     style={{ fontSize: "11px" }}
                     width={80}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
+                      backgroundColor: "#18181b",
+                      border: "1px solid #27272a",
                       borderRadius: "8px",
                       color: "#fff",
                     }}
                   />
-                  <Bar
-                    dataKey="value"
-                    radius={[0, 4, 0, 0]}
-                    fill={COLORS.primary}
-                  />
+                  <Bar dataKey="value" radius={[0, 4, 0, 0]} fill="#ffffff" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -858,8 +883,8 @@ export default function DashboardPage() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
+                      backgroundColor: "#18181b",
+                      border: "1px solid #27272a",
                       borderRadius: "8px",
                       color: "#fff",
                     }}
@@ -888,31 +913,30 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-        </motion.div>
+        </ScrollSection>
 
-        {/* Location Lists */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
-          className="grid grid-cols-1 lg:grid-cols-2 gap-4"
-        >
+        {/* Location Lists con Scroll Trigger */}
+        <ScrollSection delay={0.6} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <LocationList
             title="Top Países"
             icon={Globe}
             locations={data.top_countries}
           />
-          <LocationList title="Top Ciudades" icon={MapPin} locations={data.top_cities} />
-        </motion.div>
+          <LocationList
+            title="Top Ciudades"
+            icon={MapPin}
+            locations={data.top_cities}
+          />
+        </ScrollSection>
 
         {/* Footer */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="text-center py-8"
+          className="text-center py-12"
         >
-          <p className="text-xs text-zinc-600">
+          <p className="text-sm text-zinc-600">
             Powered by{" "}
             <span className="text-zinc-500 font-medium">QR-Hub Analytics</span>
             {" | "}
