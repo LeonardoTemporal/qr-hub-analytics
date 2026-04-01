@@ -25,6 +25,7 @@ import {
   Activity,
   LogOut,
   Lock,
+  Download,
 } from "lucide-react";
 import {
   LineChart,
@@ -76,6 +77,60 @@ const COLORS = {
 };
 
 const MASTER_PASSWORD = "7fitment2026";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CSV Export Function
+// ─────────────────────────────────────────────────────────────────────────────
+function exportToCSV(data: AnalyticsData) {
+  // Create CSV content
+  const rows = [
+    ["7Fitment Analytics Report"],
+    [`Generated: ${new Date().toLocaleDateString()}`],
+    [""],
+    ["KPIs"],
+    ["Métrica", "Valor"],
+    ["Total Escaneos", data.kpis.total_scans.toString()],
+    ["Últimos 7 días", data.kpis.recent_scans_7d.toString()],
+    [""],
+    ["Serie de Tiempo - Últimos 30 Días"],
+    ["Fecha", "Escaneos"],
+    ...data.time_series.map((item) => [item.date, item.scans.toString()]),
+    [""],
+    ["Distribución por Dispositivo"],
+    ["Dispositivo", "Escaneos"],
+    ...data.device_distribution.map((item) => [item.name, item.value.toString()]),
+    [""],
+    ["Distribución por OS"],
+    ["Sistema Operativo", "Escaneos"],
+    ...data.os_distribution.map((item) => [item.name, item.value.toString()]),
+    [""],
+    ["Distribución por Navegador"],
+    ["Navegador", "Escaneos"],
+    ...data.browser_distribution.map((item) => [item.name, item.value.toString()]),
+    [""],
+    ["Top Países"],
+    ["País", "Escaneos"],
+    ...data.top_countries.map((item) => [item.name, item.value.toString()]),
+    [""],
+    ["Top Ciudades"],
+    ["Ciudad", "Escaneos"],
+    ...data.top_cities.map((item) => [item.name, item.value.toString()]),
+  ];
+
+  // Convert to CSV string
+  const csvContent = rows.map((row) => row.join(",")).join("\n");
+
+  // Create blob and download
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute("download", `7fitment_reporte_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Animations - Framer Motion Variants
@@ -641,15 +696,17 @@ export default function DashboardPage() {
       {/* Header */}
       <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
 
-      {/* Contenido con padding top masivo para compensar header sticky */}
-      <div className="max-w-7xl mx-auto px-4 pt-32 pb-12 md:pt-40 md:pb-16 space-y-16">
-        {/* Page Title con margin inferior agresivo */}
+      {/* Contenido con padding top para compensar header sticky - altura aproximada del header */}
+      {/* Header tiene py-6 + contenido ≈ 100px mobile, más en desktop */}
+      <div className="max-w-7xl mx-auto px-4 pt-32 pb-12 md:pt-40 lg:pt-48 space-y-16">
+        {/* Page Title con botón de exportar */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-20"
+          className="flex flex-col gap-6 mb-20"
         >
+          {/* Título y subtítulo */}
           <div>
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
               <span className="gradient-text">7Fitment Analytics</span>
@@ -658,15 +715,26 @@ export default function DashboardPage() {
               Métricas en tiempo real de tus escaneos QR
             </p>
           </div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex items-center gap-2 text-sm text-zinc-500 bg-white/5 px-5 py-2.5 rounded-full border border-white/10 hover:bg-white/10 transition-all cursor-default"
-          >
-            <Calendar size={16} />
-            <span>Últimos 30 días</span>
-          </motion.div>
+
+          {/* Botones de acción */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Badge de fecha */}
+            <div className="flex items-center gap-2 text-sm text-zinc-500 bg-white/5 px-5 py-2.5 rounded-full border border-white/10">
+              <Calendar size={16} />
+              <span>Últimos 30 días</span>
+            </div>
+
+            {/* Botón de exportar CSV */}
+            <motion.button
+              onClick={() => data && exportToCSV(data)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-medium rounded-xl transition-all duration-200 border border-white shadow-lg hover:shadow-xl"
+            >
+              <Download size={16} />
+              <span>Descargar Reporte CSV</span>
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* KPIs Grid con Stagger Animation - más espacio */}
