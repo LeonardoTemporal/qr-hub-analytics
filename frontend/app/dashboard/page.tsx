@@ -182,18 +182,18 @@ function KPICard({ title, value, icon: Icon, trend, color, index }: KPICardProps
         y: -4,
         transition: { type: "spring", stiffness: 300, damping: 20 },
       }}
-      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer group"
+      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300 cursor-pointer group"
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs text-zinc-400 uppercase tracking-wide mb-1">
+          <p className="text-xs text-zinc-400 uppercase tracking-wide mb-2">
             {title}
           </p>
           <motion.p
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: index * 0.1, type: "spring", stiffness: 200 }}
-            className="text-3xl font-bold text-white"
+            className="text-4xl font-bold text-white"
           >
             {typeof value === "number" ? <AnimatedNumber value={value} /> : value}
           </motion.p>
@@ -202,7 +202,7 @@ function KPICard({ title, value, icon: Icon, trend, color, index }: KPICardProps
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 + 0.2 }}
-              className="text-xs text-emerald-400 mt-2 flex items-center gap-1"
+              className="text-xs text-emerald-400 mt-3 flex items-center gap-1"
             >
               <ArrowUpRight size={14} />
               {trend}
@@ -212,9 +212,9 @@ function KPICard({ title, value, icon: Icon, trend, color, index }: KPICardProps
         <motion.div
           whileHover={{ rotate: 360, scale: 1.1 }}
           transition={{ duration: 0.6, type: "spring" }}
-          className={`p-3 rounded-xl ${color} group-hover:scale-110 transition-transform`}
+          className={`p-4 rounded-xl ${color} group-hover:scale-110 transition-transform`}
         >
-          <Icon size={24} className="text-white" />
+          <Icon size={28} className="text-white" />
         </motion.div>
       </div>
     </motion.div>
@@ -238,13 +238,13 @@ function LocationList({ title, icon: Icon, locations }: LocationListProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+      className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300"
     >
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-6">
         <Icon size={18} className="text-zinc-400" />
         <h3 className="text-sm font-medium text-zinc-300">{title}</h3>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {locations.length === 0 ? (
           <p className="text-sm text-zinc-500">No hay datos disponibles</p>
         ) : (
@@ -257,7 +257,7 @@ function LocationList({ title, icon: Icon, locations }: LocationListProps) {
               className="flex items-center gap-3"
             >
               <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-zinc-300">{location.name}</span>
                   <motion.span
                     initial={{ scale: 0 }}
@@ -272,7 +272,7 @@ function LocationList({ title, icon: Icon, locations }: LocationListProps) {
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
                   transition={{ delay: index * 0.05 + 0.15, duration: 0.6 }}
-                  className="h-1.5 bg-white/10 rounded-full overflow-hidden"
+                  className="h-2 bg-white/10 rounded-full overflow-hidden"
                   style={{ transformOrigin: "left" }}
                 >
                   <motion.div
@@ -641,17 +641,17 @@ export default function DashboardPage() {
       {/* Header */}
       <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
 
-      {/* Contenido con espacio extra */}
-      <div className="max-w-7xl mx-auto px-4 py-12 md:py-16 space-y-12">
+      {/* Contenido con espacio extra y padding top para compensar header sticky */}
+      <div className="max-w-7xl mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 space-y-16">
         {/* Page Title */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8"
         >
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-3">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
               <span className="gradient-text">7Fitment Analytics</span>
             </h1>
             <p className="text-zinc-400 text-lg">
@@ -669,12 +669,12 @@ export default function DashboardPage() {
           </motion.div>
         </motion.div>
 
-        {/* KPIs Grid con Stagger Animation */}
+        {/* KPIs Grid con Stagger Animation - más espacio */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
         >
           <KPICard
             title="Total Escaneos"
@@ -709,8 +709,8 @@ export default function DashboardPage() {
 
         {/* Main Chart - Time Series con Scroll Trigger */}
         <ScrollSection delay={0.2}>
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
-            <div className="flex items-center gap-2 mb-6">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+            <div className="flex items-center gap-2 mb-8">
               <motion.div
                 animate={{ rotate: [0, 5, -5, 0] }}
                 transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
@@ -721,7 +721,7 @@ export default function DashboardPage() {
             </div>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.time_series}>
+                <LineChart data={data.time_series} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
                   <XAxis
                     dataKey="date"
@@ -761,16 +761,16 @@ export default function DashboardPage() {
         </ScrollSection>
 
         {/* Distribution Charts con Scroll Trigger */}
-        <ScrollSection delay={0.4} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ScrollSection delay={0.4} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Device Distribution */}
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
             <div className="flex items-center gap-2 mb-6">
               <Monitor size={18} className="text-zinc-400" />
               <h3 className="text-sm font-medium text-zinc-300">Dispositivos</h3>
             </div>
-            <div className="h-64">
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
+                <RechartsPieChart margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
                   <Pie
                     data={data.device_distribution}
                     cx="50%"
@@ -798,7 +798,7 @@ export default function DashboardPage() {
                 </RechartsPieChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-4 space-y-2">
+            <div className="mt-6 space-y-3">
               {data.device_distribution.slice(0, 3).map((item, index) => (
                 <div
                   key={index}
@@ -821,7 +821,7 @@ export default function DashboardPage() {
           </div>
 
           {/* OS Distribution */}
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
             <div className="flex items-center gap-2 mb-6">
               <Smartphone size={18} className="text-zinc-400" />
               <h3 className="text-sm font-medium text-zinc-300">Sistemas Operativos</h3>
@@ -831,7 +831,7 @@ export default function DashboardPage() {
                 <BarChart
                   layout="vertical"
                   data={data.os_distribution.slice(0, 5)}
-                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#27272a" horizontal={false} />
                   <XAxis type="number" stroke="#71717a" style={{ fontSize: "11px" }} />
@@ -857,14 +857,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Browser Distribution */}
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 hover:border-white/20 transition-all duration-300">
             <div className="flex items-center gap-2 mb-6">
               <PieChart size={18} className="text-zinc-400" />
               <h3 className="text-sm font-medium text-zinc-300">Navegadores</h3>
             </div>
-            <div className="h-64">
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
+                <RechartsPieChart margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
                   <Pie
                     data={data.browser_distribution}
                     cx="50%"
@@ -892,7 +892,7 @@ export default function DashboardPage() {
                 </RechartsPieChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-4 space-y-2">
+            <div className="mt-6 space-y-3">
               {data.browser_distribution.slice(0, 3).map((item, index) => (
                 <div
                   key={index}
@@ -916,7 +916,7 @@ export default function DashboardPage() {
         </ScrollSection>
 
         {/* Location Lists con Scroll Trigger */}
-        <ScrollSection delay={0.6} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ScrollSection delay={0.6} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <LocationList
             title="Top Países"
             icon={Globe}
