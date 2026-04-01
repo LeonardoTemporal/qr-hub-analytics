@@ -48,7 +48,7 @@ export default async function EnlacesPage() {
   const campaign = getCampaignData(CAMPAIGN_ID);
 
   return (
-    <main className="min-h-screen bg-black flex flex-col items-center justify-start px-4 py-12">
+    <main className="min-h-screen bg-black/90 flex flex-col items-center justify-start px-4 py-12">
       {/* Evento GA4 (Client Component sin UI) */}
       <GA4PageView campaignId={CAMPAIGN_ID} />
 
@@ -76,12 +76,12 @@ export default async function EnlacesPage() {
           className="flex flex-col gap-4"
         >
           {campaign.links.map((link, index) => (
-            <motion.li
+            <motion.div
               key={link.id}
               variants={itemVariants}
             >
               <LinkCard link={link} />
-            </motion.li>
+            </motion.div>
           ))}
         </motion.nav>
 
