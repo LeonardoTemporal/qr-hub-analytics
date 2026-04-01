@@ -18,7 +18,7 @@ const CAMPAIGNS: Record<string, CampaignData> = {
   "7fitment": {
     id: "7fitment",
     displayName: "7Fitment",
-    bio: "Transforma tu cuerpo, transforma tu vida. Entrenamiento personalizado y nutrición.",
+    bio: "Personalización y protección premium para tu auto. WRAP, Gráficos, Detailing y PPF con los mejores estándares del mercado.",
     links: [
       {
         id: "whatsapp",

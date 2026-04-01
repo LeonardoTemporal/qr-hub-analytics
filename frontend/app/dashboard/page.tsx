@@ -712,15 +712,10 @@ export default function DashboardPage() {
         </div>
 
         {/* BODY SECTION - Contenido principal con flex-grow */}
-        <div className="flex-grow px-4 pt-12 pb-12">
-          <div className="max-w-7xl mx-auto space-y-16">
-            {/* Page Title con botón de exportar */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="flex flex-col gap-6"
-            >
+        <div className="flex-grow px-4 pt-32 pb-24">
+          <div className="max-w-7xl mx-auto grid gap-y-24">
+            {/* Page Title Section */}
+            <section className="flex flex-col gap-6">
               {/* Título y subtítulo */}
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
@@ -750,15 +745,16 @@ export default function DashboardPage() {
                   <span>Descargar Reporte CSV</span>
                 </motion.button>
               </div>
-            </motion.div>
+            </section>
 
-        {/* KPIs Grid con Stagger Animation - más espacio */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
-        >
+            {/* KPIs Grid Section */}
+            <section>
+              <motion.div
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+              >
           <KPICard
             title="Total Escaneos"
             value={data.kpis.total_scans}
@@ -789,6 +785,7 @@ export default function DashboardPage() {
             index={3}
           />
         </motion.div>
+            </section>
 
         {/* Main Chart - Time Series con Scroll Trigger */}
         <ScrollSection delay={0.2}>
