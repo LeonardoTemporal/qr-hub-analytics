@@ -704,51 +704,53 @@ export default function DashboardPage() {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -50 }}
         transition={{ duration: 0.5, ease: "easeInOut" }}
-        className="min-h-screen bg-black"
+        className="min-h-screen bg-black flex flex-col"
       >
-        {/* Header */}
-        <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
+        {/* HEADER SECTION - Saludo, título, botones */}
+        <div className="flex-shrink-0">
+          <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
+        </div>
 
-        {/* Contenido con padding top para compensar header sticky - altura aproximada del header */}
-        {/* Header tiene py-6 + contenido ≈ 100px mobile, más en desktop */}
-        <div className="max-w-7xl mx-auto px-4 pt-32 pb-12 md:pt-40 lg:pt-48 space-y-16">
-          {/* Page Title con botón de exportar */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex flex-col gap-6 mb-20"
-          >
-            {/* Título y subtítulo */}
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                <span className="gradient-text">7Fitment Analytics</span>
-              </h1>
-              <p className="text-zinc-400 text-lg">
-                Métricas en tiempo real de tus escaneos QR
-              </p>
-            </div>
-
-            {/* Botones de acción */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Badge de fecha */}
-              <div className="flex items-center gap-2 text-sm text-zinc-500 bg-white/5 px-5 py-2.5 rounded-full border border-white/10">
-                <Calendar size={16} />
-                <span>Últimos 30 días</span>
+        {/* BODY SECTION - Contenido principal con flex-grow */}
+        <div className="flex-grow px-4 pt-12 pb-12">
+          <div className="max-w-7xl mx-auto space-y-16">
+            {/* Page Title con botón de exportar */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="flex flex-col gap-6"
+            >
+              {/* Título y subtítulo */}
+              <div>
+                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                  <span className="gradient-text">7Fitment Analytics</span>
+                </h1>
+                <p className="text-zinc-400 text-lg">
+                  Métricas en tiempo real de tus escaneos QR
+                </p>
               </div>
 
-              {/* Botón de exportar CSV */}
-              <motion.button
-                onClick={() => data && exportToCSV(data)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-medium rounded-xl transition-all duration-200 border border-white shadow-lg hover:shadow-xl"
-              >
-                <Download size={16} />
-                <span>Descargar Reporte CSV</span>
-              </motion.button>
-            </div>
-          </motion.div>
+              {/* Botones de acción */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                {/* Badge de fecha */}
+                <div className="flex items-center gap-2 text-sm text-zinc-500 bg-white/5 px-5 py-2.5 rounded-full border border-white/10">
+                  <Calendar size={16} />
+                  <span>Últimos 30 días</span>
+                </div>
+
+                {/* Botón de exportar CSV */}
+                <motion.button
+                  onClick={() => data && exportToCSV(data)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-medium rounded-xl transition-all duration-200 border border-white shadow-lg hover:shadow-xl"
+                >
+                  <Download size={16} />
+                  <span>Descargar Reporte CSV</span>
+                </motion.button>
+              </div>
+            </motion.div>
 
         {/* KPIs Grid con Stagger Animation - más espacio */}
         <motion.div
@@ -1009,23 +1011,26 @@ export default function DashboardPage() {
             locations={data.top_cities}
           />
         </ScrollSection>
+          </div>
+        </div>
 
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="text-center py-12"
-        >
-          <p className="text-sm text-zinc-600">
-            Powered by{" "}
-            <span className="text-zinc-500 font-medium">QR-Hub Analytics</span>
-            {" | "}
-            <span className="gradient-text font-medium">by HellSpawn</span>
-          </p>
-        </motion.div>
-      </div>
-    </motion.main>
+        {/* FOOTER SECTION - Discreto y centrado */}
+        <div className="flex-shrink-0 py-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+            className="text-center"
+          >
+            <p className="text-sm text-zinc-600">
+              Powered by{" "}
+              <span className="text-zinc-500 font-medium">QR-Hub Analytics</span>
+              {" | "}
+              <span className="gradient-text font-medium">by HellSpawn</span>
+            </p>
+          </motion.div>
+        </div>
+      </motion.main>
     </AnimatePresence>
   );
 }
