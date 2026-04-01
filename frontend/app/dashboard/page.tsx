@@ -474,7 +474,7 @@ function DashboardHeader({ ownerName, onLogout }: DashboardHeaderProps) {
                 ¡Hola, <span className="gradient-text">{ownerName}</span>!
               </motion.h1>
               <p className="text-sm text-zinc-400">
-                Bienvenida a tu panel de analíticas premium
+                Bienvenida a tu panel de analíticas
               </p>
             </div>
           </div>
@@ -641,14 +641,14 @@ export default function DashboardPage() {
       {/* Header */}
       <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
 
-      {/* Contenido con espacio extra y padding top para compensar header sticky */}
-      <div className="max-w-7xl mx-auto px-4 pt-8 pb-12 md:pt-12 md:pb-16 space-y-16">
-        {/* Page Title */}
+      {/* Contenido con padding top masivo para compensar header sticky */}
+      <div className="max-w-7xl mx-auto px-4 pt-32 pb-12 md:pt-40 md:pb-16 space-y-16">
+        {/* Page Title con margin inferior agresivo */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8"
+          className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-20"
         >
           <div>
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
