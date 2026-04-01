@@ -19,13 +19,21 @@ const CAMPAIGNS: Record<string, CampaignData> = {
     id: "7fitment",
     displayName: "7Fitment",
     bio: "Personalización y protección premium para tu auto. WRAP, Gráficos, Detailing y PPF con los mejores estándares del mercado.",
+    avatarUrl: "/logo.jpg",
     links: [
       {
         id: "whatsapp",
-        label: "Escribinos por WhatsApp",
-        href: "https://wa.me/525637940104",
+        label: "Cotiza tu proyecto",
+        href: "https://wa.me/525637940104?text=Hola%207Fitment,%20me%20interesa%20cotizar%20un%20proyecto%20para%20mi%20auto",
         icon: "MessageCircle",
         colorClass: "bg-green-500/10 hover:bg-green-500/20",
+      },
+      {
+        id: "maps",
+        label: "Visítanos en Satélite",
+        href: "",
+        icon: "MapPin",
+        colorClass: "bg-zinc-500/10 hover:bg-zinc-500/20",
       },
       {
         id: "instagram",
@@ -34,14 +42,6 @@ const CAMPAIGNS: Record<string, CampaignData> = {
         icon: "Instagram",
         colorClass: "bg-pink-500/10 hover:bg-pink-500/20",
       },
-      // Website button temporarily hidden
-      // {
-      //   id: "website",
-      //   label: "Visitar sitio web",
-      //   href: "https://tudominio.com",
-      //   icon: "Globe",
-      //   colorClass: "bg-indigo-500/10 hover:bg-indigo-500/20",
-      // },
     ],
   },
 };

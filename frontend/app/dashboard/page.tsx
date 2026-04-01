@@ -11,6 +11,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import {
   TrendingUp,
   Users,
@@ -387,9 +388,16 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
             initial={{ rotate: 0 }}
             animate={{ rotate: 360 }}
             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white mb-4 shadow-2xl"
+            className="inline-flex items-center justify-center w-20 h-20 rounded-full overflow-hidden ring-2 ring-white/20 ring-offset-4 ring-offset-black mb-4 shadow-2xl relative"
           >
-            <span className="text-4xl font-bold text-black">7F</span>
+            <Image
+              src="/logo.jpg"
+              alt="7Fitment Logo"
+              fill
+              sizes="80px"
+              className="object-cover"
+              priority
+            />
           </motion.div>
           <h1 className="text-3xl font-bold text-white mb-2">
             <span className="gradient-text">7Fitment Analytics</span>

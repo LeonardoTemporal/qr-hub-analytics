@@ -10,6 +10,7 @@ import {
   Instagram,
   Link,
   Mail,
+  MapPin,
   MessageCircle,
   Phone,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const ICON_MAP = {
   Instagram,
   Globe,
   Link,
+  MapPin,
   Phone,
   Mail,
 } as const;

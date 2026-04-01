@@ -15,7 +15,7 @@ export interface SocialLink {
    * Se usa un string discriminado para que sea serializable desde una fuente
    * externa (API, CMS, env var) sin importar toda la librería de iconos.
    */
-  icon: "MessageCircle" | "Instagram" | "Globe" | "Link" | "Phone" | "Mail";
+  icon: "MessageCircle" | "Instagram" | "Globe" | "Link" | "MapPin" | "Phone" | "Mail";
   /** Clases Tailwind extra para el color de fondo del botón */
   colorClass?: string;
 }
