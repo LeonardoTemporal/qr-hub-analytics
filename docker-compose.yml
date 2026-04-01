@@ -91,6 +91,17 @@ services:
       - dokploy-network
     depends_on:
       - qrhub_backend
+    labels:
+      - traefik.docker.network=dokploy-network
+      - traefik.enable=true
+      - traefik.http.routers.hostweb-qrhubprod-9flizk-3-web.rule=Host(`7fitment.com`)
+      - traefik.http.routers.hostweb-qrhubprod-9flizk-3-web.entrypoints=web
+      - traefik.http.routers.hostweb-qrhubprod-9flizk-3-web.service=hostweb-qrhubprod-9flizk-3-web
+      - traefik.http.services.hostweb-qrhubprod-9flizk-3-web.loadbalancer.server.port=3000
+      # Admin subdomain labels
+      - traefik.http.routers.hostweb-qrhubprod-9flizk-admin.rule=Host(`admin.7fitment.com`)
+      - traefik.http.routers.hostweb-qrhubprod-9flizk-admin.entrypoints=web
+      - traefik.http.routers.hostweb-qrhubprod-9flizk-admin.service=hostweb-qrhubprod-9flizk-3-web
 
   # ---------------------------------------------------------------------------
   # metabase - Business Intelligence (official Metabase image)
