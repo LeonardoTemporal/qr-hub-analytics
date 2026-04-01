@@ -369,9 +369,10 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 1.05, y: -20 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
       className="min-h-screen bg-black flex items-center justify-center p-4"
     >
       <motion.div
@@ -617,7 +618,11 @@ export default function DashboardPage() {
 
   // Show login page if not authenticated
   if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
+    return (
+      <AnimatePresence mode="wait">
+        <LoginPage key="login" onLogin={handleLogin} />
+      </AnimatePresence>
+    );
   }
 
   // Show loading state
@@ -692,50 +697,58 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black">
-      {/* Header */}
-      <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
+    <AnimatePresence mode="wait">
+      <motion.main
+        key="dashboard"
+        initial={{ opacity: 0, x: 50 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -50 }}
+        transition={{ duration: 0.5, ease: "easeInOut" }}
+        className="min-h-screen bg-black"
+      >
+        {/* Header */}
+        <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
 
-      {/* Contenido con padding top para compensar header sticky - altura aproximada del header */}
-      {/* Header tiene py-6 + contenido ≈ 100px mobile, más en desktop */}
-      <div className="max-w-7xl mx-auto px-4 pt-32 pb-12 md:pt-40 lg:pt-48 space-y-16">
-        {/* Page Title con botón de exportar */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="flex flex-col gap-6 mb-20"
-        >
-          {/* Título y subtítulo */}
-          <div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              <span className="gradient-text">7Fitment Analytics</span>
-            </h1>
-            <p className="text-zinc-400 text-lg">
-              Métricas en tiempo real de tus escaneos QR
-            </p>
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Badge de fecha */}
-            <div className="flex items-center gap-2 text-sm text-zinc-500 bg-white/5 px-5 py-2.5 rounded-full border border-white/10">
-              <Calendar size={16} />
-              <span>Últimos 30 días</span>
+        {/* Contenido con padding top para compensar header sticky - altura aproximada del header */}
+        {/* Header tiene py-6 + contenido ≈ 100px mobile, más en desktop */}
+        <div className="max-w-7xl mx-auto px-4 pt-32 pb-12 md:pt-40 lg:pt-48 space-y-16">
+          {/* Page Title con botón de exportar */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="flex flex-col gap-6 mb-20"
+          >
+            {/* Título y subtítulo */}
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                <span className="gradient-text">7Fitment Analytics</span>
+              </h1>
+              <p className="text-zinc-400 text-lg">
+                Métricas en tiempo real de tus escaneos QR
+              </p>
             </div>
 
-            {/* Botón de exportar CSV */}
-            <motion.button
-              onClick={() => data && exportToCSV(data)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-medium rounded-xl transition-all duration-200 border border-white shadow-lg hover:shadow-xl"
-            >
-              <Download size={16} />
-              <span>Descargar Reporte CSV</span>
-            </motion.button>
-          </div>
-        </motion.div>
+            {/* Botones de acción */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Badge de fecha */}
+              <div className="flex items-center gap-2 text-sm text-zinc-500 bg-white/5 px-5 py-2.5 rounded-full border border-white/10">
+                <Calendar size={16} />
+                <span>Últimos 30 días</span>
+              </div>
+
+              {/* Botón de exportar CSV */}
+              <motion.button
+                onClick={() => data && exportToCSV(data)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-zinc-200 text-black font-medium rounded-xl transition-all duration-200 border border-white shadow-lg hover:shadow-xl"
+              >
+                <Download size={16} />
+                <span>Descargar Reporte CSV</span>
+              </motion.button>
+            </div>
+          </motion.div>
 
         {/* KPIs Grid con Stagger Animation - más espacio */}
         <motion.div
@@ -1012,6 +1025,7 @@ export default function DashboardPage() {
           </p>
         </motion.div>
       </div>
-    </main>
+    </motion.main>
+    </AnimatePresence>
   );
 }
