@@ -46,7 +46,6 @@ import { DashboardLoginForm } from "@/components/DashboardLoginForm";
 import { DashboardLoadingState } from "@/components/DashboardLoadingState";
 import { DashboardErrorState } from "@/components/DashboardErrorState";
 import { ScrollSection } from "@/components/ScrollSection";
-import { Footer } from "@/components/Footer";
 import { GradientBackground } from "@/components/GradientBackground";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -247,7 +246,7 @@ export default function DashboardPage() {
     return <DashboardErrorState error={error} onRetry={handleLogout} />;
   }
 
-  // Main dashboard
+  // Main dashboard - Strict 3-block flex layout
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -255,38 +254,52 @@ export default function DashboardPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-h-screen bg-black"
+        className="min-h-screen bg-black flex flex-col"
       >
-        {/* Background gradient */}
+        {/* Background gradient - positioned behind everything */}
         <GradientBackground variant="top" intensity="subtle" />
 
-        {/* Fixed Header */}
+        {/* ════════════════════════════════════════════════════════════════════
+            BLOCK 1: FIXED NAVIGATION HEADER
+            - Fixed position with proper z-index
+            - Height: h-16 (64px) on mobile, h-20 (80px) on desktop
+        ════════════════════════════════════════════════════════════════════ */}
         <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
 
-        {/* Main Content */}
-        <main className="pt-24 sm:pt-28 pb-16 sm:pb-24">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            
-            {/* Hero Section - Title and Actions */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="mb-12 sm:mb-16 lg:mb-20"
-            >
-              <div className="flex flex-col gap-6">
-                <div>
-                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-white mb-3 tracking-tight">
+        {/* ════════════════════════════════════════════════════════════════════
+            BLOCK 2: MAIN CONTENT (flex-grow)
+            - Spacer div compensates for fixed header height
+            - Content uses flex-grow to fill available space
+            - Generous padding and gaps for breathing room
+        ════════════════════════════════════════════════════════════════════ */}
+        <main className="flex-grow flex flex-col">
+          {/* Spacer for fixed header - must match header height exactly */}
+          <div className="h-20 sm:h-24 flex-shrink-0" aria-hidden="true" />
+
+          {/* Content container with max-width and padding */}
+          <div className="flex-grow px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+            <div className="max-w-7xl mx-auto w-full flex flex-col gap-12 sm:gap-16 lg:gap-20">
+
+              {/* Hero Section - Title, Subtitle, and Actions */}
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="flex flex-col gap-6 sm:gap-8"
+              >
+                {/* Title Block */}
+                <div className="space-y-2 sm:space-y-3">
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-white tracking-tight">
                     <span className="gradient-text font-medium">7Fitment</span> Analytics
                   </h1>
-                  <p className="text-sm sm:text-base text-zinc-500 max-w-xl">
+                  <p className="text-sm sm:text-base lg:text-lg text-zinc-500 max-w-2xl">
                     Metricas en tiempo real de tus escaneos QR
                   </p>
                 </div>
 
-                {/* Action buttons */}
-                <div className="flex flex-wrap gap-3">
-                  <div className="inline-flex items-center gap-2 text-xs sm:text-sm text-zinc-500 bg-white/[0.03] px-4 py-2 rounded-full border border-white/[0.08]">
+                {/* Action Buttons */}
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                  <div className="inline-flex items-center gap-2 text-xs sm:text-sm text-zinc-500 bg-white/[0.03] px-4 sm:px-5 py-2.5 rounded-full border border-white/[0.08]">
                     <Calendar size={14} strokeWidth={1.5} />
                     <span>Ultimos 30 dias</span>
                   </div>
@@ -295,220 +308,230 @@ export default function DashboardPage() {
                     onClick={() => exportToCSV(data)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 bg-white hover:bg-zinc-100 text-black text-xs sm:text-sm font-medium rounded-full transition-all duration-300 shadow-lg"
+                    className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-white hover:bg-zinc-100 text-black text-xs sm:text-sm font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
                   >
                     <Download size={14} strokeWidth={2} />
                     <span>Exportar CSV</span>
                   </motion.button>
                 </div>
-              </div>
-            </motion.section>
+              </motion.section>
 
-            {/* KPIs Grid */}
-            <motion.section
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-              className="mb-12 sm:mb-16 lg:mb-20"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <DashboardKPICard
-                  title="Total Escaneos"
-                  value={data.kpis.total_scans}
-                  icon={TrendingUp}
-                  iconBgClass="bg-white"
-                  index={0}
-                />
-                <DashboardKPICard
-                  title="Ultimos 7 dias"
-                  value={data.kpis.recent_scans_7d}
-                  icon={Activity}
-                  trend="+12.5%"
-                  iconBgClass="bg-zinc-200"
-                  index={1}
-                />
-                <DashboardKPICard
-                  title="Dispositivos"
-                  value={data.device_distribution.length}
-                  icon={Smartphone}
-                  iconBgClass="bg-zinc-400"
-                  index={2}
-                />
-                <DashboardKPICard
-                  title="Paises"
-                  value={data.top_countries.length}
-                  icon={Globe}
-                  iconBgClass="bg-zinc-600"
-                  index={3}
-                />
-              </div>
-            </motion.section>
-
-            {/* Time Series Chart */}
-            <ScrollSection className="mb-12 sm:mb-16 lg:mb-20">
-              <DashboardChartCard title="Tendencia de Escaneos" icon={BarChart3}>
-                <div className="h-64 sm:h-72 lg:h-80 -mx-2 sm:mx-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart 
-                      data={data.time_series} 
-                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                      <XAxis
-                        dataKey="date"
-                        stroke="#52525b"
-                        tick={{ fill: '#71717a', fontSize: 10 }}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(dateStr) => {
-                          const date = new Date(dateStr);
-                          return `${date.getDate()}/${date.getMonth() + 1}`;
-                        }}
-                      />
-                      <YAxis 
-                        stroke="#52525b" 
-                        tick={{ fill: '#71717a', fontSize: 10 }}
-                        tickLine={false}
-                        axisLine={false}
-                        width={30}
-                      />
-                      <Tooltip
-                        {...TOOLTIP_STYLE}
-                        labelFormatter={(dateStr) => {
-                          const date = new Date(dateStr);
-                          return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-                        }}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="scans"
-                        stroke="#ffffff"
-                        strokeWidth={2}
-                        dot={{ fill: "#ffffff", r: 3, strokeWidth: 0 }}
-                        activeDot={{ r: 5, fill: "#ffffff" }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+              {/* KPIs Grid Section */}
+              <motion.section
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+                  <DashboardKPICard
+                    title="Total Escaneos"
+                    value={data.kpis.total_scans}
+                    icon={TrendingUp}
+                    iconBgClass="bg-white"
+                    index={0}
+                  />
+                  <DashboardKPICard
+                    title="Ultimos 7 dias"
+                    value={data.kpis.recent_scans_7d}
+                    icon={Activity}
+                    trend="+12.5%"
+                    iconBgClass="bg-zinc-200"
+                    index={1}
+                  />
+                  <DashboardKPICard
+                    title="Dispositivos"
+                    value={data.device_distribution.length}
+                    icon={Smartphone}
+                    iconBgClass="bg-zinc-400"
+                    index={2}
+                  />
+                  <DashboardKPICard
+                    title="Paises"
+                    value={data.top_countries.length}
+                    icon={Globe}
+                    iconBgClass="bg-zinc-600"
+                    index={3}
+                  />
                 </div>
-              </DashboardChartCard>
-            </ScrollSection>
+              </motion.section>
 
-            {/* Distribution Charts */}
-            <ScrollSection delay={0.1} className="mb-12 sm:mb-16 lg:mb-20">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                
-                {/* Device Distribution */}
-                <DashboardChartCard title="Dispositivos" icon={Monitor}>
-                  <div className="h-48 sm:h-56">
+              {/* Time Series Chart Section */}
+              <ScrollSection>
+                <DashboardChartCard title="Tendencia de Escaneos" icon={BarChart3}>
+                  <div className="h-64 sm:h-72 lg:h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPieChart>
-                        <Pie
-                          data={data.device_distribution}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="55%"
-                          outerRadius="80%"
-                          paddingAngle={4}
-                          dataKey="value"
-                        >
-                          {data.device_distribution.map((_, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS.devices[index % COLORS.devices.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip {...TOOLTIP_STYLE} />
-                      </RechartsPieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <DistributionLegend items={data.device_distribution} colors={COLORS.devices} />
-                </DashboardChartCard>
-
-                {/* OS Distribution */}
-                <DashboardChartCard title="Sistemas Operativos" icon={Smartphone}>
-                  <div className="h-48 sm:h-56">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        layout="vertical"
-                        data={data.os_distribution.slice(0, 5)}
-                        margin={{ top: 0, right: 10, left: -10, bottom: 0 }}
+                      <LineChart 
+                        data={data.time_series} 
+                        margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                        <XAxis 
-                          type="number" 
-                          stroke="#52525b" 
-                          tick={{ fill: '#71717a', fontSize: 10 }}
-                          tickLine={false}
-                          axisLine={false}
-                        />
-                        <YAxis
-                          dataKey="name"
-                          type="category"
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis
+                          dataKey="date"
                           stroke="#52525b"
-                          tick={{ fill: '#a1a1aa', fontSize: 10 }}
+                          tick={{ fill: '#71717a', fontSize: 11 }}
                           tickLine={false}
                           axisLine={false}
-                          width={70}
+                          tickFormatter={(dateStr) => {
+                            const date = new Date(dateStr);
+                            return `${date.getDate()}/${date.getMonth() + 1}`;
+                          }}
                         />
-                        <Tooltip {...TOOLTIP_STYLE} />
-                        <Bar dataKey="value" radius={[0, 4, 4, 0]} fill="#ffffff" />
-                      </BarChart>
+                        <YAxis 
+                          stroke="#52525b" 
+                          tick={{ fill: '#71717a', fontSize: 11 }}
+                          tickLine={false}
+                          axisLine={false}
+                          width={40}
+                        />
+                        <Tooltip
+                          {...TOOLTIP_STYLE}
+                          labelFormatter={(dateStr) => {
+                            const date = new Date(dateStr);
+                            return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="scans"
+                          stroke="#ffffff"
+                          strokeWidth={2}
+                          dot={{ fill: "#ffffff", r: 3, strokeWidth: 0 }}
+                          activeDot={{ r: 6, fill: "#ffffff" }}
+                        />
+                      </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </DashboardChartCard>
+              </ScrollSection>
 
-                {/* Browser Distribution */}
-                <DashboardChartCard title="Navegadores" icon={PieChart}>
-                  <div className="h-48 sm:h-56">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPieChart>
-                        <Pie
-                          data={data.browser_distribution}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="55%"
-                          outerRadius="80%"
-                          paddingAngle={4}
-                          dataKey="value"
+              {/* Distribution Charts Section */}
+              <ScrollSection delay={0.1}>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
+                  
+                  {/* Device Distribution */}
+                  <DashboardChartCard title="Dispositivos" icon={Monitor}>
+                    <div className="h-52 sm:h-60">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart>
+                          <Pie
+                            data={data.device_distribution}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius="50%"
+                            outerRadius="75%"
+                            paddingAngle={4}
+                            dataKey="value"
+                          >
+                            {data.device_distribution.map((_, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={COLORS.devices[index % COLORS.devices.length]}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip {...TOOLTIP_STYLE} />
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <DistributionLegend items={data.device_distribution} colors={COLORS.devices} />
+                  </DashboardChartCard>
+
+                  {/* OS Distribution */}
+                  <DashboardChartCard title="Sistemas Operativos" icon={Smartphone}>
+                    <div className="h-52 sm:h-60">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          layout="vertical"
+                          data={data.os_distribution.slice(0, 5)}
+                          margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
                         >
-                          {data.browser_distribution.map((_, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS.browsers[index % COLORS.browsers.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip {...TOOLTIP_STYLE} />
-                      </RechartsPieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <DistributionLegend items={data.browser_distribution} colors={COLORS.browsers} />
-                </DashboardChartCard>
-              </div>
-            </ScrollSection>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                          <XAxis 
+                            type="number" 
+                            stroke="#52525b" 
+                            tick={{ fill: '#71717a', fontSize: 11 }}
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <YAxis
+                            dataKey="name"
+                            type="category"
+                            stroke="#52525b"
+                            tick={{ fill: '#a1a1aa', fontSize: 11 }}
+                            tickLine={false}
+                            axisLine={false}
+                            width={80}
+                          />
+                          <Tooltip {...TOOLTIP_STYLE} />
+                          <Bar dataKey="value" radius={[0, 6, 6, 0]} fill="#ffffff" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </DashboardChartCard>
 
-            {/* Location Data */}
-            <ScrollSection delay={0.2} className="mb-12 sm:mb-16">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                <DashboardLocationList
-                  title="Top Paises"
-                  icon={Globe}
-                  locations={data.top_countries}
-                />
-                <DashboardLocationList
-                  title="Top Ciudades"
-                  icon={MapPin}
-                  locations={data.top_cities}
-                />
-              </div>
-            </ScrollSection>
+                  {/* Browser Distribution */}
+                  <DashboardChartCard title="Navegadores" icon={PieChart}>
+                    <div className="h-52 sm:h-60">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart>
+                          <Pie
+                            data={data.browser_distribution}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius="50%"
+                            outerRadius="75%"
+                            paddingAngle={4}
+                            dataKey="value"
+                          >
+                            {data.browser_distribution.map((_, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={COLORS.browsers[index % COLORS.browsers.length]}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip {...TOOLTIP_STYLE} />
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <DistributionLegend items={data.browser_distribution} colors={COLORS.browsers} />
+                  </DashboardChartCard>
+                </div>
+              </ScrollSection>
 
+              {/* Location Data Section */}
+              <ScrollSection delay={0.2}>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+                  <DashboardLocationList
+                    title="Top Paises"
+                    icon={Globe}
+                    locations={data.top_countries}
+                  />
+                  <DashboardLocationList
+                    title="Top Ciudades"
+                    icon={MapPin}
+                    locations={data.top_cities}
+                  />
+                </div>
+              </ScrollSection>
+
+            </div>
           </div>
         </main>
 
-        {/* Footer */}
-        <Footer />
+        {/* ════════════════════════════════════════════════════════════════════
+            BLOCK 3: FOOTER (flex-shrink-0)
+            - Always anchored at bottom
+            - Does not shrink when content is short
+        ════════════════════════════════════════════════════════════════════ */}
+        <footer className="flex-shrink-0 py-8 sm:py-10 border-t border-white/[0.03]">
+          <p className="text-center text-[10px] sm:text-xs text-zinc-600 select-none">
+            Powered by{" "}
+            <span className="text-zinc-500">QR-Hub Analytics</span>
+            {" | "}
+            <span className="gradient-text">by HellSpawn</span>
+          </p>
+        </footer>
       </motion.div>
     </AnimatePresence>
   );
