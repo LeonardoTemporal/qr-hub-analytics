@@ -10,10 +10,11 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import redirect, analytics
+from app.routers import analytics, auth, redirect
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,11 +30,22 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Crea las tablas al iniciar (conveniente en desarrollo).
-    En producción se recomienda usar Alembic para migraciones versionadas.
+    Aplica migraciones idempotentes ligeras (ALTER TABLE IF NOT EXISTS) para
+    columnas añadidas a posteriori sobre instalaciones ya en producción.
+    En producción a gran escala se recomienda usar Alembic para migraciones versionadas.
     """
     logger.info("Starting up QR-Hub Analytics backend…")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+        # Migración idempotente: añadir columna `state` si no existe.
+        # Postgres soporta ADD COLUMN IF NOT EXISTS desde la 9.6.
+        await conn.execute(
+            text(
+                "ALTER TABLE scans "
+                "ADD COLUMN IF NOT EXISTS state VARCHAR(100)"
+            )
+        )
     logger.info("Database schema verified / created.")
 
     yield  # ← la app está en ejecución
@@ -67,7 +79,7 @@ app.add_middleware(
         "https://admin.7fitment.com",
     ],
     allow_credentials=True,
-    allow_methods=["GET", "HEAD", "OPTIONS"],
+    allow_methods=["GET", "POST", "HEAD", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -76,6 +88,7 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 app.include_router(redirect.router)
 app.include_router(analytics.router, prefix="/api")
+app.include_router(auth.router, prefix="/api")
 
 
 # ---------------------------------------------------------------------------

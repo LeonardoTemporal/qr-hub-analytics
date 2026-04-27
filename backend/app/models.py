@@ -15,7 +15,8 @@ class Scan(Base):
         id           – PK autoincremental.
         campaign_id  – Identificador del QR / campaña (slug).
         country      – País resuelto vía GeoLite2.
-        city         – Ciudad resuelta vía GeoLite2.
+        state        – Estado / subdivisión (ej. "Jalisco", "CDMX") vía GeoLite2 subdivisions.
+        city         – Ciudad / municipio resuelto vía GeoLite2.
         device_type  – mobile | tablet | desktop | other.
         os           – Sistema operativo extraído del User-Agent.
         browser      – Navegador extraído del User-Agent.
@@ -31,6 +32,7 @@ class Scan(Base):
     )
 
     country: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    state: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     city: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
 
     device_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
@@ -46,5 +48,6 @@ class Scan(Base):
     def __repr__(self) -> str:
         return (
             f"<Scan id={self.id} campaign={self.campaign_id!r} "
-            f"country={self.country!r} device={self.device_type!r}>"
+            f"country={self.country!r} state={self.state!r} "
+            f"city={self.city!r} device={self.device_type!r}>"
         )

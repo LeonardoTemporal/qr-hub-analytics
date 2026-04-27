@@ -12,5 +12,11 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     GEOIP_DB_PATH: str = "/app/GeoLite2-City.mmdb"
 
+    # ── Admin Auth (Dashboard /analytics protegido) ─────────────────────────
+    # En producción: definir vía variables de entorno seguras.
+    # Nunca exponer estos valores al frontend.
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "7fitment2026"
+
 
 settings = Settings()

@@ -78,6 +78,7 @@ async def _record_scan(
         scan = Scan(
             campaign_id=campaign_id,
             country=geo.country,
+            state=geo.state,
             city=geo.city,
             device_type=device.device_type,
             os=device.os,
@@ -89,9 +90,11 @@ async def _record_scan(
             await session.commit()
 
         logger.debug(
-            "Scan recorded: campaign=%r country=%r device=%r",
+            "Scan recorded: campaign=%r country=%r state=%r city=%r device=%r",
             campaign_id,
             geo.country,
+            geo.state,
+            geo.city,
             device.device_type,
         )
     except Exception as exc:  # noqa: BLE001

@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True, slots=True)
 class GeoLocation:
     country: Optional[str] = None
+    state: Optional[str] = None
     city: Optional[str] = None
 
 
@@ -70,8 +71,18 @@ class GeoLite2Service:
             return GeoLocation()
         try:
             response = self._reader.city(ip_address)
+
+            # MaxMind devuelve subdivisions con jerarquía (estado → municipio).
+            # En México: subdivisions[0] = estado (ej. "Jalisco", "Ciudad de México").
+            # response.city.name suele ser el municipio / ciudad principal.
+            state_name: Optional[str] = None
+            if response.subdivisions:
+                most_specific = response.subdivisions.most_specific
+                state_name = most_specific.name or None
+
             return GeoLocation(
                 country=response.country.name or None,
+                state=state_name,
                 city=response.city.name or None,
             )
         except Exception as exc:
