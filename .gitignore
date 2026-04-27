@@ -84,3 +84,30 @@ htmlcov/
 .ruff_cache/
 coverage/
 *.lcov
+
+# -----------------------------------------------------------------------------
+# Ad-hoc screenshots and reference images at project root
+# (legitimate assets live under frontend/public/)
+# -----------------------------------------------------------------------------
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.webp
+/screenshots/
+/captures/
+
+# -----------------------------------------------------------------------------
+# Drafts and scratch files
+# -----------------------------------------------------------------------------
+*.new.tsx
+*.new.ts
+*.draft.*
+*.bak
+*.orig
+
+# -----------------------------------------------------------------------------
+# Vite (in case it appears in subprojects)
+# -----------------------------------------------------------------------------
+.vite/
+vite.config.*.timestamp-*
