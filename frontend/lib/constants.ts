@@ -43,8 +43,8 @@ export const CHART_AXIS_STYLE = {
   fontSize: "12px",
 } as const;
 
-// Authentication
-export const MASTER_PASSWORD = "7fitment2026";
+// Authentication is handled via backend (POST /api/auth/login).
+// Credentials live exclusively in the FastAPI service env (ADMIN_USERNAME / ADMIN_PASSWORD).
 
 // Brand info
 export const BRAND = {

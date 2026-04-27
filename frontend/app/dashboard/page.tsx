@@ -1,14 +1,18 @@
 /**
  * Dashboard de Analiticas - 7Fitment
  *
- * Panel profesional premium con estetica luxury automotive
- * Arquitectura modular con componentes separados
- * Totalmente responsive (mobile-first)
+ * Conectado a los 4 endpoints especializados del backend:
+ *   GET /api/analytics/summary/{campaign_id}
+ *   GET /api/analytics/distribution/{campaign_id}
+ *   GET /api/analytics/location/{campaign_id}
+ *   GET /api/analytics/timeline/{campaign_id}?range=hoy|7d|30d
+ *
+ * Auth: HTTP Basic guardado en sessionStorage tras POST /api/auth/login.
  */
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   TrendingUp,
   Smartphone,
@@ -20,10 +24,11 @@ import {
   MapPin,
   Activity,
   Download,
+  Building2,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   PieChart as RechartsPieChart,
@@ -37,7 +42,6 @@ import {
 } from "recharts";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Components
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { DashboardKPICard } from "@/components/DashboardKPICard";
 import { DashboardChartCard } from "@/components/DashboardChartCard";
@@ -47,34 +51,64 @@ import { DashboardLoadingState } from "@/components/DashboardLoadingState";
 import { DashboardErrorState } from "@/components/DashboardErrorState";
 import { ScrollSection } from "@/components/ScrollSection";
 import { GradientBackground } from "@/components/GradientBackground";
+import { authFetch, clearStoredAuth, UnauthorizedError } from "@/lib/auth-fetch";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types
+// Tipos backend
 // ─────────────────────────────────────────────────────────────────────────────
-interface AnalyticsData {
-  campaign_id: string;
-  kpis: {
-    total_scans: number;
-    recent_scans_7d: number;
-  };
-  time_series: Array<{ date: string; scans: number }>;
-  device_distribution: Array<{ name: string; value: number }>;
-  os_distribution: Array<{ name: string; value: number }>;
-  browser_distribution: Array<{ name: string; value: number }>;
-  top_countries: Array<{ name: string; value: number }>;
-  top_cities: Array<{ name: string; value: number }>;
+interface NameValue {
+  name: string;
+  value: number;
 }
 
+interface SummaryResponse {
+  campaign_id: string;
+  total_scans: number;
+  recent_scans_7d: number;
+  scans_30d: number;
+  daily_avg: number;
+  unique_devices: number;
+  unique_countries: number;
+}
+
+interface DistributionResponse {
+  campaign_id: string;
+  devices: NameValue[];
+  os: NameValue[];
+  browsers: NameValue[];
+}
+
+interface LocationResponse {
+  campaign_id: string;
+  countries: NameValue[];
+  states: NameValue[];
+  cities: NameValue[];
+}
+
+interface TimelinePoint {
+  date: string;
+  scans: number;
+}
+
+interface TimelineResponse {
+  campaign_id: string;
+  range: TimeRange;
+  bucket: "day" | "hour";
+  series: TimelinePoint[];
+}
+
+type TimeRange = "hoy" | "7d" | "30d";
+
+const CAMPAIGN_ID = "7fitment";
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Constants
+// Constantes visuales
 // ─────────────────────────────────────────────────────────────────────────────
 const COLORS = {
   devices: ["#ffffff", "#d4d4d8", "#a1a1aa", "#71717a"],
   os: ["#ffffff", "#d4d4d8", "#a1a1aa", "#71717a", "#52525b", "#3f3f46"],
   browsers: ["#ffffff", "#d4d4d8", "#a1a1aa", "#71717a", "#52525b"],
 };
-
-const MASTER_PASSWORD = "7fitment2026";
 
 const TOOLTIP_STYLE = {
   contentStyle: {
@@ -87,76 +121,97 @@ const TOOLTIP_STYLE = {
   itemStyle: { color: "#a1a1aa" },
 };
 
-// Animation variants
+const RANGE_LABEL: Record<TimeRange, string> = {
+  hoy: "Hoy",
+  "7d": "Ultimos 7 dias",
+  "30d": "Ultimos 30 dias",
+};
+
 const staggerContainer = {
   hidden: {},
-  visible: {
-    transition: { staggerChildren: 0.08 },
-  },
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CSV Export Function
+// CSV Export
 // ─────────────────────────────────────────────────────────────────────────────
-function exportToCSV(data: AnalyticsData) {
-  const rows = [
+function exportToCSV(
+  summary: SummaryResponse,
+  distribution: DistributionResponse,
+  location: LocationResponse,
+  timeline: TimelineResponse,
+): void {
+  const rows: string[][] = [
     ["7Fitment Analytics Report"],
     [`Generated: ${new Date().toLocaleDateString()}`],
     [""],
     ["KPIs"],
     ["Metrica", "Valor"],
-    ["Total Escaneos", data.kpis.total_scans.toString()],
-    ["Ultimos 7 dias", data.kpis.recent_scans_7d.toString()],
+    ["Total Escaneos", String(summary.total_scans)],
+    ["Ultimos 7 dias", String(summary.recent_scans_7d)],
+    ["Promedio diario", String(summary.daily_avg)],
+    ["Dispositivos unicos", String(summary.unique_devices)],
+    ["Paises unicos", String(summary.unique_countries)],
     [""],
     ["Serie de Tiempo"],
     ["Fecha", "Escaneos"],
-    ...data.time_series.map((item) => [item.date, item.scans.toString()]),
+    ...timeline.series.map((p) => [p.date, String(p.scans)]),
     [""],
     ["Dispositivos"],
     ["Dispositivo", "Escaneos"],
-    ...data.device_distribution.map((item) => [item.name, item.value.toString()]),
+    ...distribution.devices.map((d) => [d.name, String(d.value)]),
     [""],
     ["Sistemas Operativos"],
     ["OS", "Escaneos"],
-    ...data.os_distribution.map((item) => [item.name, item.value.toString()]),
+    ...distribution.os.map((d) => [d.name, String(d.value)]),
     [""],
     ["Navegadores"],
     ["Navegador", "Escaneos"],
-    ...data.browser_distribution.map((item) => [item.name, item.value.toString()]),
+    ...distribution.browsers.map((d) => [d.name, String(d.value)]),
     [""],
     ["Paises"],
     ["Pais", "Escaneos"],
-    ...data.top_countries.map((item) => [item.name, item.value.toString()]),
+    ...location.countries.map((d) => [d.name, String(d.value)]),
     [""],
-    ["Ciudades"],
+    ["Estados / Subdivisiones"],
+    ["Estado", "Escaneos"],
+    ...location.states.map((d) => [d.name, String(d.value)]),
+    [""],
+    ["Ciudades / Municipios"],
     ["Ciudad", "Escaneos"],
-    ...data.top_cities.map((item) => [item.name, item.value.toString()]),
+    ...location.cities.map((d) => [d.name, String(d.value)]),
   ];
 
   const csvContent = rows.map((row) => row.join(",")).join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.setAttribute("href", URL.createObjectURL(blob));
-  link.setAttribute("download", `7fitment_reporte_${new Date().toISOString().split('T')[0]}.csv`);
+  link.setAttribute(
+    "download",
+    `7fitment_reporte_${new Date().toISOString().split("T")[0]}.csv`,
+  );
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Distribution Legend Component
+// Distribution Legend
 // ─────────────────────────────────────────────────────────────────────────────
-function DistributionLegend({ 
-  items, 
-  colors 
-}: { 
-  items: Array<{ name: string; value: number }>; 
+function DistributionLegend({
+  items,
+  colors,
+}: {
+  items: NameValue[];
   colors: string[];
 }) {
   return (
     <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3">
       {items.slice(0, 3).map((item, index) => (
-        <div key={index} className="flex items-center justify-between text-xs sm:text-sm">
+        <div
+          key={`${item.name}-${index}`}
+          className="flex items-center justify-between text-xs sm:text-sm"
+        >
           <div className="flex items-center gap-2">
             <div
               className="w-2 h-2 sm:w-3 sm:h-3 rounded-full shrink-0"
@@ -164,7 +219,9 @@ function DistributionLegend({
             />
             <span className="text-zinc-400 truncate">{item.name}</span>
           </div>
-          <span className="text-white font-medium tabular-nums">{item.value}</span>
+          <span className="text-white font-medium tabular-nums">
+            {item.value}
+          </span>
         </div>
       ))}
     </div>
@@ -172,81 +229,155 @@ function DistributionLegend({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Time Range Selector
+// ─────────────────────────────────────────────────────────────────────────────
+function TimeRangeSelector({
+  value,
+  onChange,
+}: {
+  value: TimeRange;
+  onChange: (next: TimeRange) => void;
+}) {
+  const options: TimeRange[] = ["hoy", "7d", "30d"];
+  return (
+    <div className="inline-flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] rounded-full p-1">
+      {options.map((opt) => {
+        const active = value === opt;
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onChange(opt)}
+            className={`px-4 sm:px-5 py-1.5 text-xs sm:text-sm rounded-full transition-all ${
+              active
+                ? "bg-white text-black font-medium shadow"
+                : "text-zinc-400 hover:text-white"
+            }`}
+          >
+            {RANGE_LABEL[opt]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Timeline tick formatter
+// ─────────────────────────────────────────────────────────────────────────────
+function formatTimelineTick(dateStr: string, range: TimeRange): string {
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return dateStr;
+  if (range === "hoy") {
+    return `${date.getHours().toString().padStart(2, "0")}:00`;
+  }
+  return `${date.getDate()}/${date.getMonth() + 1}`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main Dashboard Page
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [summary, setSummary] = useState<SummaryResponse | null>(null);
+  const [distribution, setDistribution] = useState<DistributionResponse | null>(null);
+  const [location, setLocation] = useState<LocationResponse | null>(null);
+  const [timeline, setTimeline] = useState<TimelineResponse | null>(null);
+  const [range, setRange] = useState<TimeRange>("30d");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check authentication on mount
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const auth = sessionStorage.getItem("dashboard_auth");
     if (auth === "true") {
       setIsAuthenticated(true);
+    } else {
+      setLoading(false);
     }
   }, []);
 
-  const handleLogin = () => {
-    sessionStorage.setItem("dashboard_auth", "true");
+  const handleLogin = useCallback(() => {
     setIsAuthenticated(true);
-  };
+    setLoading(true);
+  }, []);
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("dashboard_auth");
+  const handleLogout = useCallback(() => {
+    clearStoredAuth();
     setIsAuthenticated(false);
-    setData(null);
-  };
+    setSummary(null);
+    setDistribution(null);
+    setLocation(null);
+    setTimeline(null);
+    setError(null);
+    setLoading(true);
+  }, []);
 
-  // Fetch analytics data when authenticated
+  // Fetch initial bundle (summary + distribution + location + timeline) en paralelo.
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    async function fetchAnalytics() {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    (async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-        const url = `${apiUrl}/api/analytics/7fitment`;
-        const response = await fetch(url);
+        const [sum, dist, loc, tl] = await Promise.all([
+          authFetch<SummaryResponse>(`/api/analytics/summary/${CAMPAIGN_ID}`),
+          authFetch<DistributionResponse>(
+            `/api/analytics/distribution/${CAMPAIGN_ID}`,
+          ),
+          authFetch<LocationResponse>(`/api/analytics/location/${CAMPAIGN_ID}`),
+          authFetch<TimelineResponse>(
+            `/api/analytics/timeline/${CAMPAIGN_ID}?range=${range}`,
+          ),
+        ]);
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        if (cancelled) return;
+        setSummary(sum);
+        setDistribution(dist);
+        setLocation(loc);
+        setTimeline(tl);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        if (err instanceof UnauthorizedError) {
+          setIsAuthenticated(false);
+          setError(null);
+        } else {
+          const message =
+            err instanceof Error ? err.message : "Error desconocido";
+          setError(`Error cargando analiticas: ${message}`);
         }
-
-        const analyticsData = await response.json();
-        setData(analyticsData);
-      } catch (err) {
-        setError(
-          `Error cargando analiticas: ${err instanceof Error ? err.message : "Error desconocido"}`
-        );
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    }
+    })();
 
-    fetchAnalytics();
-  }, [isAuthenticated]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, range]);
 
-  // Login state
+  // ──────────────────────────────────────────────────────────────────────────
+  // Render: Login / Loading / Error / Dashboard
+  // ──────────────────────────────────────────────────────────────────────────
   if (!isAuthenticated) {
     return (
       <AnimatePresence mode="wait">
-        <DashboardLoginForm key="login" onLogin={handleLogin} masterPassword={MASTER_PASSWORD} />
+        <DashboardLoginForm key="login" onLogin={handleLogin} />
       </AnimatePresence>
     );
   }
 
-  // Loading state
-  if (loading) {
+  if (loading || !summary || !distribution || !location || !timeline) {
     return <DashboardLoadingState />;
   }
 
-  // Error state
-  if (error || !data) {
+  if (error) {
     return <DashboardErrorState error={error} onRetry={handleLogout} />;
   }
 
-  // Main dashboard - Strict 3-block flex layout
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -256,56 +387,44 @@ export default function DashboardPage() {
         exit={{ opacity: 0 }}
         className="min-h-screen bg-black flex flex-col"
       >
-        {/* Background gradient - positioned behind everything */}
         <GradientBackground variant="top" intensity="subtle" />
 
-        {/* ════════════════════════════════════════════════════════════════════
-            BLOCK 1: FIXED NAVIGATION HEADER
-            - Fixed position with proper z-index
-            - Height: h-16 (64px) on mobile, h-20 (80px) on desktop
-        ════════════════════════════════════════════════════════════════════ */}
         <DashboardHeader ownerName="Leslye" onLogout={handleLogout} />
 
-        {/* ════════════════════════════════════════════════════════════════════
-            BLOCK 2: MAIN CONTENT (flex-grow)
-            - Spacer div compensates for fixed header height
-            - Content uses flex-grow to fill available space
-            - Generous padding and gaps for breathing room
-        ════════════════════════════════════════════════════════════════════ */}
         <main className="flex-grow flex flex-col">
-          {/* Spacer for fixed header - must match header height exactly */}
           <div className="h-20 sm:h-24 flex-shrink-0" aria-hidden="true" />
 
-          {/* Content container with max-width and padding */}
           <div className="flex-grow px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
             <div className="max-w-7xl mx-auto w-full flex flex-col gap-12 sm:gap-16 lg:gap-20">
-
-              {/* Hero Section - Title, Subtitle, and Actions */}
+              {/* Hero */}
               <motion.section
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
                 className="flex flex-col gap-6 sm:gap-8"
               >
-                {/* Title Block */}
                 <div className="space-y-2 sm:space-y-3">
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-light text-white tracking-tight">
-                    <span className="gradient-text font-medium">7Fitment</span> Analytics
+                    <span className="gradient-text font-medium">7Fitment</span>{" "}
+                    Analytics
                   </h1>
                   <p className="text-sm sm:text-base lg:text-lg text-zinc-500 max-w-2xl">
                     Metricas en tiempo real de tus escaneos QR
                   </p>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                  <TimeRangeSelector value={range} onChange={setRange} />
+
                   <div className="inline-flex items-center gap-2 text-xs sm:text-sm text-zinc-500 bg-white/[0.03] px-4 sm:px-5 py-2.5 rounded-full border border-white/[0.08]">
                     <Calendar size={14} strokeWidth={1.5} />
-                    <span>Ultimos 30 dias</span>
+                    <span>{RANGE_LABEL[range]}</span>
                   </div>
 
                   <motion.button
-                    onClick={() => exportToCSV(data)}
+                    onClick={() =>
+                      exportToCSV(summary, distribution, location, timeline)
+                    }
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 bg-white hover:bg-zinc-100 text-black text-xs sm:text-sm font-medium rounded-full transition-all duration-300 shadow-lg hover:shadow-xl"
@@ -316,7 +435,7 @@ export default function DashboardPage() {
                 </div>
               </motion.section>
 
-              {/* KPIs Grid Section */}
+              {/* KPIs */}
               <motion.section
                 variants={staggerContainer}
                 initial="hidden"
@@ -325,29 +444,28 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
                   <DashboardKPICard
                     title="Total Escaneos"
-                    value={data.kpis.total_scans}
+                    value={summary.total_scans}
                     icon={TrendingUp}
                     iconBgClass="bg-white"
                     index={0}
                   />
                   <DashboardKPICard
                     title="Ultimos 7 dias"
-                    value={data.kpis.recent_scans_7d}
+                    value={summary.recent_scans_7d}
                     icon={Activity}
-                    trend="+12.5%"
                     iconBgClass="bg-zinc-200"
                     index={1}
                   />
                   <DashboardKPICard
-                    title="Dispositivos"
-                    value={data.device_distribution.length}
+                    title="Promedio diario"
+                    value={summary.daily_avg}
                     icon={Smartphone}
                     iconBgClass="bg-zinc-400"
                     index={2}
                   />
                   <DashboardKPICard
                     title="Paises"
-                    value={data.top_countries.length}
+                    value={summary.unique_countries}
                     icon={Globe}
                     iconBgClass="bg-zinc-600"
                     index={3}
@@ -355,66 +473,84 @@ export default function DashboardPage() {
                 </div>
               </motion.section>
 
-              {/* Time Series Chart Section */}
+              {/* Timeline */}
               <ScrollSection>
-                <DashboardChartCard title="Tendencia de Escaneos" icon={BarChart3}>
+                <DashboardChartCard
+                  title="Tendencia de Escaneos"
+                  icon={BarChart3}
+                >
                   <div className="h-64 sm:h-72 lg:h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart 
-                        data={data.time_series} 
+                      <AreaChart
+                        data={timeline.series}
                         margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <defs>
+                          <linearGradient
+                            id="scansGradient"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop offset="0%" stopColor="#ffffff" stopOpacity={0.4} />
+                            <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="rgba(255,255,255,0.05)"
+                          vertical={false}
+                        />
                         <XAxis
                           dataKey="date"
                           stroke="#52525b"
-                          tick={{ fill: '#71717a', fontSize: 11 }}
+                          tick={{ fill: "#71717a", fontSize: 11 }}
                           tickLine={false}
                           axisLine={false}
-                          tickFormatter={(dateStr) => {
-                            const date = new Date(dateStr);
-                            return `${date.getDate()}/${date.getMonth() + 1}`;
-                          }}
+                          tickFormatter={(d: string) =>
+                            formatTimelineTick(d, range)
+                          }
                         />
-                        <YAxis 
-                          stroke="#52525b" 
-                          tick={{ fill: '#71717a', fontSize: 11 }}
+                        <YAxis
+                          stroke="#52525b"
+                          tick={{ fill: "#71717a", fontSize: 11 }}
                           tickLine={false}
                           axisLine={false}
                           width={40}
                         />
                         <Tooltip
                           {...TOOLTIP_STYLE}
-                          labelFormatter={(dateStr) => {
-                            const date = new Date(dateStr);
-                            return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-                          }}
+                          labelFormatter={(label) =>
+                            typeof label === "string"
+                              ? formatTimelineTick(label, range)
+                              : String(label ?? "")
+                          }
                         />
-                        <Line
+                        <Area
                           type="monotone"
                           dataKey="scans"
                           stroke="#ffffff"
                           strokeWidth={2}
+                          fill="url(#scansGradient)"
                           dot={{ fill: "#ffffff", r: 3, strokeWidth: 0 }}
                           activeDot={{ r: 6, fill: "#ffffff" }}
                         />
-                      </LineChart>
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </DashboardChartCard>
               </ScrollSection>
 
-              {/* Distribution Charts Section */}
+              {/* Distributions */}
               <ScrollSection delay={0.1}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-                  
-                  {/* Device Distribution */}
                   <DashboardChartCard title="Dispositivos" icon={Monitor}>
                     <div className="h-52 sm:h-60">
                       <ResponsiveContainer width="100%" height="100%">
                         <RechartsPieChart>
                           <Pie
-                            data={data.device_distribution}
+                            data={distribution.devices}
                             cx="50%"
                             cy="50%"
                             innerRadius="50%"
@@ -422,9 +558,9 @@ export default function DashboardPage() {
                             paddingAngle={4}
                             dataKey="value"
                           >
-                            {data.device_distribution.map((_, index) => (
+                            {distribution.devices.map((_, index) => (
                               <Cell
-                                key={`cell-${index}`}
+                                key={`cell-dev-${index}`}
                                 fill={COLORS.devices[index % COLORS.devices.length]}
                               />
                             ))}
@@ -433,23 +569,32 @@ export default function DashboardPage() {
                         </RechartsPieChart>
                       </ResponsiveContainer>
                     </div>
-                    <DistributionLegend items={data.device_distribution} colors={COLORS.devices} />
+                    <DistributionLegend
+                      items={distribution.devices}
+                      colors={COLORS.devices}
+                    />
                   </DashboardChartCard>
 
-                  {/* OS Distribution */}
-                  <DashboardChartCard title="Sistemas Operativos" icon={Smartphone}>
+                  <DashboardChartCard
+                    title="Sistemas Operativos"
+                    icon={Smartphone}
+                  >
                     <div className="h-52 sm:h-60">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                           layout="vertical"
-                          data={data.os_distribution.slice(0, 5)}
+                          data={distribution.os.slice(0, 5)}
                           margin={{ top: 10, right: 20, left: 0, bottom: 10 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                          <XAxis 
-                            type="number" 
-                            stroke="#52525b" 
-                            tick={{ fill: '#71717a', fontSize: 11 }}
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="rgba(255,255,255,0.05)"
+                            horizontal={false}
+                          />
+                          <XAxis
+                            type="number"
+                            stroke="#52525b"
+                            tick={{ fill: "#71717a", fontSize: 11 }}
                             tickLine={false}
                             axisLine={false}
                           />
@@ -457,25 +602,28 @@ export default function DashboardPage() {
                             dataKey="name"
                             type="category"
                             stroke="#52525b"
-                            tick={{ fill: '#a1a1aa', fontSize: 11 }}
+                            tick={{ fill: "#a1a1aa", fontSize: 11 }}
                             tickLine={false}
                             axisLine={false}
                             width={80}
                           />
                           <Tooltip {...TOOLTIP_STYLE} />
-                          <Bar dataKey="value" radius={[0, 6, 6, 0]} fill="#ffffff" />
+                          <Bar
+                            dataKey="value"
+                            radius={[0, 6, 6, 0]}
+                            fill="#ffffff"
+                          />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
                   </DashboardChartCard>
 
-                  {/* Browser Distribution */}
                   <DashboardChartCard title="Navegadores" icon={PieChart}>
                     <div className="h-52 sm:h-60">
                       <ResponsiveContainer width="100%" height="100%">
                         <RechartsPieChart>
                           <Pie
-                            data={data.browser_distribution}
+                            data={distribution.browsers}
                             cx="50%"
                             cy="50%"
                             innerRadius="50%"
@@ -483,10 +631,12 @@ export default function DashboardPage() {
                             paddingAngle={4}
                             dataKey="value"
                           >
-                            {data.browser_distribution.map((_, index) => (
+                            {distribution.browsers.map((_, index) => (
                               <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS.browsers[index % COLORS.browsers.length]}
+                                key={`cell-br-${index}`}
+                                fill={
+                                  COLORS.browsers[index % COLORS.browsers.length]
+                                }
                               />
                             ))}
                           </Pie>
@@ -494,36 +644,38 @@ export default function DashboardPage() {
                         </RechartsPieChart>
                       </ResponsiveContainer>
                     </div>
-                    <DistributionLegend items={data.browser_distribution} colors={COLORS.browsers} />
+                    <DistributionLegend
+                      items={distribution.browsers}
+                      colors={COLORS.browsers}
+                    />
                   </DashboardChartCard>
                 </div>
               </ScrollSection>
 
-              {/* Location Data Section */}
+              {/* Location: Países / Estados / Municipios */}
               <ScrollSection delay={0.2}>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
                   <DashboardLocationList
                     title="Top Paises"
                     icon={Globe}
-                    locations={data.top_countries}
+                    locations={location.countries}
                   />
                   <DashboardLocationList
-                    title="Top Ciudades"
+                    title="Top Estados"
+                    icon={Building2}
+                    locations={location.states}
+                  />
+                  <DashboardLocationList
+                    title="Top Municipios"
                     icon={MapPin}
-                    locations={data.top_cities}
+                    locations={location.cities}
                   />
                 </div>
               </ScrollSection>
-
             </div>
           </div>
         </main>
 
-        {/* ════════════════════════════════════════════════════════════════════
-            BLOCK 3: FOOTER (flex-shrink-0)
-            - Always anchored at bottom
-            - Does not shrink when content is short
-        ════════════════════════════════════════════════════════════════════ */}
         <footer className="flex-shrink-0 py-8 sm:py-10 border-t border-white/[0.03]">
           <p className="text-center text-[10px] sm:text-xs text-zinc-600 select-none">
             Powered by{" "}

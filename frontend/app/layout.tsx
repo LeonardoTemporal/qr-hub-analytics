@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { DM_Sans } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-dm-sans",
   display: "swap",
+  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
-  title: "QR-Hub",
-  description: "Tu destino de enlaces",
+  title: "7Fitment | El estándar definitivo en estética y cuidado automotriz",
+  description:
+    "Estudio de estética automotriz premium. Wraps, PPF, recubrimientos cerámicos y corrección de pintura para vehículos de lujo.",
 };
 
 const GA4_ID = process.env.NEXT_PUBLIC_GA4_ID;
@@ -22,13 +24,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={inter.variable}>
-      <body className="antialiased">
-        {/* ── Google Analytics 4 ──────────────────────────────────────
-            strategy="afterInteractive" garantiza que el script no bloquee
-            el renderizado inicial (LCP / FID) – best-practice Next.js.
-            El GA4_ID se inyecta en build-time; si está vacío no se carga.
-        ─────────────────────────────────────────────────────────────── */}
+    <html
+      lang="es"
+      className={dmSans.variable}
+      suppressHydrationWarning
+    >
+      <body
+        className="bg-bg-base text-text-primary antialiased font-sans"
+        suppressHydrationWarning
+      >
         {GA4_ID && (
           <>
             <Script

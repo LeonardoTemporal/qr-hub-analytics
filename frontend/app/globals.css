@@ -1,92 +1,371 @@
 @import "tailwindcss";
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #0a0a0a;
-  --card-border: #1a1a1a;
-  --accent: #ffffff;
-  --accent-hover: #e5e5e5;
-  --muted: #71717a;
+  --bg-base: #050505;
+  --text-primary: #f2f2f2;
+  --text-body: #b8b8b8;
+  --accent-muted: #707070;
+  --border-subtle: rgba(242, 242, 242, 0.1);
+  --bg-card: #0a0a0a;
+  --text-ghost: #000000;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), system-ui, sans-serif;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
+  --color-bg-base: #050505;
+  --color-bg-card: #0a0a0a;
+  --color-text-primary: #f2f2f2;
+  --color-text-body: #b8b8b8;
+  --color-accent-muted: #707070;
+  --color-text-ghost: #000000;
+  --font-sans: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+  --font-dm: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
 }
 
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-base);
+  color: var(--text-primary);
   font-family: var(--font-sans);
   line-height: 1.6;
   min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */
-/* Gradient Text Animation - 7Fitment Premium White/Black                        */
+/* Hero text reveal (CSS fallback — GSAP toma el control en HeroSection)         */
 /* ───────────────────────────────────────────────────────────────────────────── */
-.gradient-text {
-  background: linear-gradient(
-    90deg,
-    #ffffff,
-    #d4d4d8,
-    #a1a1aa,
-    #ffffff
+@keyframes hero-letter-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(80px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-letter {
+  display: inline-block;
+  opacity: 0;
+  animation: hero-letter-reveal 0.8s cubic-bezier(0.215, 0.61, 0.355, 1)
+    forwards;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Isotipo rotación continua                                                      */
+/* ───────────────────────────────────────────────────────────────────────────── */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Ghost marquee infinito                                                         */
+/* ───────────────────────────────────────────────────────────────────────────── */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Scroll reveal (IntersectionObserver toggles .is-visible)                       */
+/* ───────────────────────────────────────────────────────────────────────────── */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.7s cubic-bezier(0.215, 0.61, 0.355, 1),
+    transform 0.7s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.scroll-reveal-left {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition:
+    opacity 0.8s cubic-bezier(0.215, 0.61, 0.355, 1),
+    transform 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.scroll-reveal-left.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Stagger delays */
+.stagger-1 {
+  transition-delay: 0.1s;
+}
+.stagger-2 {
+  transition-delay: 0.2s;
+}
+.stagger-3 {
+  transition-delay: 0.3s;
+}
+.stagger-4 {
+  transition-delay: 0.4s;
+}
+.stagger-5 {
+  transition-delay: 0.5s;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Tab content transitions                                                        */
+/* ───────────────────────────────────────────────────────────────────────────── */
+.tab-content {
+  transition: opacity 0.3s ease;
+}
+
+.tab-content.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tab-content.fade-in {
+  opacity: 1;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Cursor glow para tarjetas                                                      */
+/* ───────────────────────────────────────────────────────────────────────────── */
+.card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(242, 242, 242, 0.04),
+    transparent 60%
   );
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gradientShift 6s ease infinite;
-  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
 }
 
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+.card-glow:hover::before {
+  opacity: 1;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */
-/* Custom Scrollbar - Premium White/Black                                         */
+/* Portfolio hover                                                                */
+/* ───────────────────────────────────────────────────────────────────────────── */
+.portfolio-item {
+  overflow: hidden;
+  position: relative;
+}
+
+.portfolio-item img {
+  transition: transform 0.4s ease;
+}
+
+.portfolio-item:hover img {
+  transform: scale(1.03);
+}
+
+.portfolio-item .portfolio-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portfolio-item:hover .portfolio-overlay {
+  opacity: 1;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Link card cursor glow (EnlacesPage)                                           */
+/* ───────────────────────────────────────────────────────────────────────────── */
+.link-card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.link-card-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    250px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(242, 242, 242, 0.035),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.link-card-glow:hover::before {
+  opacity: 1;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Link card entry animation                                                      */
+/* ───────────────────────────────────────────────────────────────────────────── */
+@keyframes link-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.link-card-enter {
+  opacity: 0;
+  animation: link-card-enter 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Enlaces page — fade in elements                                                */
+/* ───────────────────────────────────────────────────────────────────────────── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.enlaces-fade-in {
+  opacity: 0;
+  animation: fade-in-up 0.7s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Tab entry animation                                                            */
+/* ───────────────────────────────────────────────────────────────────────────── */
+@keyframes tab-enter {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-item-enter {
+  opacity: 0;
+  animation: tab-enter 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Lenis Smooth Scroll                                                           */
+/* ───────────────────────────────────────────────────────────────────────────── */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Scrollbar minimal                                                              */
 /* ───────────────────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 5px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #ffffff, #a1a1aa);
-  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #e5e5e5, #71717a);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+::selection {
+  background: rgba(242, 242, 242, 0.85);
+  color: #050505;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Reduced motion                                                                 */
+/* ───────────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .hero-letter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .animate-spin-slow,
+  .animate-marquee {
+    animation: none;
+  }
+
+  .scroll-reveal,
+  .scroll-reveal-left {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }
