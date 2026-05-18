@@ -14,10 +14,12 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from app.auth import verify_login
+from app.auth import require_admin, verify_login
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -47,3 +49,13 @@ async def login(payload: LoginRequest) -> LoginResponse:
             detail="Credenciales invalidas",
         )
     return LoginResponse(success=True, username=payload.username)
+
+
+@router.get(
+    "/auth/session",
+    response_model=LoginResponse,
+    summary="Valida sesion admin del dashboard",
+    tags=["auth"],
+)
+async def session(username: Annotated[str, Depends(require_admin)]) -> LoginResponse:
+    return LoginResponse(success=True, username=username)

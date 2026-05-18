@@ -1,0 +1,2185 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>7Fitment — Personalización y protección automotriz de alto nivel</title>
+<meta name="description" content="Personalización y protección automotriz de alto nivel. Wrap, PPF, cerámico y corrección de pintura en Satélite, Edo. Méx." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+  /* ============================================
+     TOKENS
+     ============================================ */
+  :root {
+    --bg-1: #050505;
+    --bg-2: #0F0F0F;
+    --bg-3: #141414;
+    --surface: #1A1A1A;
+    --border: #2A2A2A;
+    --border-hover: #3A3A3A;
+    --text-1: #FFFFFF;
+    --text-2: #A1A1A1;
+    --text-3: #6B6B6B;
+    --accent-rare: rgba(201, 34, 107, 0.08);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --max: 1280px;
+    --pad-x: clamp(20px, 4vw, 48px);
+    --sec-y: clamp(96px, 14vw, 200px);
+  }
+
+  /* ============================================
+     RESET / BASE
+     ============================================ */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+  body {
+    margin: 0;
+    background: var(--bg-1);
+    color: var(--text-1);
+    font-family: "DM Sans", "Helvetica Neue", "Arial", system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+  img, svg, video { display: block; max-width: 100%; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; cursor: pointer; }
+  ::selection { background: #fff; color: #000; }
+
+  /* ============================================
+     PRELOADER
+     ============================================ */
+  .preloader {
+    position: fixed; inset: 0;
+    z-index: 200;
+    background: #050505;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.7s var(--ease), visibility 0.7s var(--ease);
+  }
+  .preloader-mark {
+    width: clamp(120px, 16vw, 200px);
+    opacity: 0;
+    transform: scale(0.9);
+    animation: preloaderIn 1s var(--ease) 0.1s forwards;
+    will-change: opacity, transform;
+  }
+  @keyframes preloaderIn {
+    to { opacity: 1; transform: scale(1); }
+  }
+  .preloader.fade {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  /* lock body scroll while preloader is up */
+  body.preloading { overflow: hidden; }
+
+  /* ============================================
+     PRECISION GRID (fixed background)
+     ============================================ */
+  .grid-bg {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-color: var(--bg-1);
+    background-image:
+      linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 64px 64px;
+    background-position: center center;
+  }
+  .grid-bg::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(
+      circle 360px at var(--mx, 50%) var(--my, 50%),
+      rgba(255,255,255,0.06),
+      transparent 70%
+    );
+  }
+
+  /* ============================================
+     LAYOUT
+     ============================================ */
+  .container {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 0 var(--pad-x);
+  }
+  section { position: relative; }
+
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  .display {
+    font-size: clamp(40px, 7.6vw, 96px);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .h1 {
+    font-size: clamp(32px, 5vw, 64px);
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .h2 {
+    font-size: clamp(26px, 3.4vw, 40px);
+    font-weight: 500;
+    line-height: 1.2;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .h3 {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.3;
+    margin: 0;
+  }
+  .body {
+    font-size: clamp(15px, 1.1vw, 18px);
+    line-height: 1.65;
+    color: var(--text-2);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .label {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .label::before {
+    content: "";
+    display: inline-block;
+    width: 24px; height: 1px;
+    background: var(--text-3);
+  }
+  .label.dot::before {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--text-1);
+  }
+
+  /* ============================================
+     BUTTONS
+     ============================================ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    transition: all 0.25s var(--ease);
+    white-space: nowrap;
+  }
+  .btn-primary {
+    background: #FFFFFF;
+    color: #000000;
+  }
+  .btn-primary:hover {
+    background: #E0E0E0;
+    transform: translateY(-1px) scale(1.02);
+  }
+  .btn-primary.lg { padding: 18px 36px; font-size: 15px; }
+  .btn-secondary {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-1);
+  }
+  .btn-secondary:hover {
+    border-color: var(--text-1);
+    background: rgba(255,255,255,0.05);
+    transform: translateY(-1px);
+  }
+  .btn .arrow {
+    width: 14px; height: 14px;
+    transition: transform 0.25s var(--ease);
+  }
+  .btn:hover .arrow { transform: translateX(4px); }
+
+  /* ============================================
+     NAV
+     ============================================ */
+  .nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 72px;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    transition: background 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease;
+    border-bottom: 1px solid transparent;
+  }
+  .nav.scrolled {
+    background: rgba(5,5,5,0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom-color: rgba(255,255,255,0.04);
+  }
+  .nav-inner {
+    width: 100%;
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 0 var(--pad-x);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-size: 18px;
+  }
+  .brand-mark {
+    width: 28px; height: 28px;
+    border: 1px solid var(--text-1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0;
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+  }
+  .nav-links a {
+    font-size: 13px;
+    color: var(--text-3);
+    letter-spacing: 0.02em;
+    position: relative;
+    padding: 6px 0;
+    transition: color 0.2s ease;
+  }
+  .nav-links a::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 100%;
+    bottom: 0;
+    height: 1px;
+    background: var(--text-1);
+    transition: right 0.3s var(--ease);
+  }
+  .nav-links a:hover { color: var(--text-1); }
+  .nav-links a:hover::after { right: 0; }
+  .nav-cta { display: inline-flex; }
+  .nav-cta .btn { padding: 10px 18px; font-size: 12px; }
+
+  .nav-burger {
+    display: none;
+    width: 40px; height: 40px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-1);
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-burger span {
+    display: block;
+    width: 16px; height: 1px;
+    background: currentColor;
+    position: relative;
+  }
+  .nav-burger span::before, .nav-burger span::after {
+    content: ""; position: absolute; left: 0; right: 0; height: 1px; background: currentColor;
+  }
+  .nav-burger span::before { top: -5px; }
+  .nav-burger span::after  { top:  5px; }
+
+  .mobile-menu {
+    position: fixed; inset: 0;
+    z-index: 60;
+    background: var(--bg-1);
+    display: flex;
+    flex-direction: column;
+    padding: 24px var(--pad-x);
+    transform: translateY(-100%);
+    transition: transform 0.5s var(--ease);
+  }
+  .mobile-menu.open { transform: translateY(0); }
+  .mobile-menu-top {
+    display: flex; justify-content: space-between; align-items: center;
+    height: 48px;
+  }
+  .mobile-menu-close {
+    width: 40px; height: 40px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-1);
+    position: relative;
+  }
+  .mobile-menu-close::before, .mobile-menu-close::after {
+    content: ""; position: absolute;
+    top: 50%; left: 50%;
+    width: 16px; height: 1px;
+    background: currentColor;
+    transform-origin: center;
+  }
+  .mobile-menu-close::before { transform: translate(-50%, -50%) rotate(45deg); }
+  .mobile-menu-close::after  { transform: translate(-50%, -50%) rotate(-45deg); }
+  .mobile-menu nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 24px;
+  }
+  .mobile-menu nav a {
+    font-size: clamp(32px, 8vw, 56px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-1);
+  }
+  .mobile-menu-foot {
+    padding: 24px 0;
+    border-top: 1px solid var(--border);
+    color: var(--text-3);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ============================================
+     REVEAL ANIMATIONS
+     ============================================ */
+  .reveal {
+    opacity: 0;
+    transform: translateY(50px);
+    transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
+    will-change: opacity, transform;
+  }
+  .reveal-left {
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
+    will-change: opacity, transform;
+  }
+  .reveal-right {
+    opacity: 0;
+    transform: translateX(30px);
+    transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
+    will-change: opacity, transform;
+  }
+  .reveal.in, .reveal-left.in, .reveal-right.in {
+    opacity: 1;
+    transform: none;
+  }
+  /* Stagger: 150ms between siblings inside a section */
+  [data-delay="1"] { transition-delay: 0.15s; }
+  [data-delay="2"] { transition-delay: 0.30s; }
+  [data-delay="3"] { transition-delay: 0.45s; }
+  [data-delay="4"] { transition-delay: 0.60s; }
+  [data-delay="5"] { transition-delay: 0.75s; }
+
+  /* Hero stagger — uses keyframes so it fires on load, not on scroll */
+  .hero-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: heroFade 0.8s var(--ease) forwards;
+    will-change: opacity, transform;
+  }
+  .hero-in.h-1 { animation-delay: 0.05s; }
+  .hero-in.h-2 { animation-delay: 0.25s; transform: translateY(30px); }
+  .hero-in.h-3 { animation-delay: 0.45s; transform: translateY(30px); }
+  .hero-in.h-4 { animation-delay: 0.65s; transform: scale(0.95); }
+  @keyframes heroFade {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  body.preloading .hero-in {
+    /* hold hero animation while preloader is up */
+    animation-play-state: paused;
+  }
+  .hero-in.split-source {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+  .split-mask {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    line-height: 1.02;
+    padding-bottom: 0.08em;
+  }
+  .split-unit {
+    display: inline-block;
+    opacity: 0;
+    transform: translate3d(0, 115%, 0);
+    will-change: opacity, transform;
+  }
+  .split-space {
+    display: inline-block;
+    width: 0.24em;
+  }
+  .premium-split {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .premium-word-mask {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    line-height: 1.08;
+    padding-bottom: 0.08em;
+  }
+  .premium-word {
+    display: inline-block;
+    opacity: 0;
+    transform: translate3d(0, 110%, 0);
+    will-change: opacity, transform;
+  }
+  .premium-word-space {
+    display: inline-block;
+    width: 0.24em;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal, .reveal-left, .reveal-right { opacity: 1; transform: none; transition: none; }
+    .hero-in, .split-unit, .premium-word { opacity: 1; transform: none; animation: none; transition: none; }
+    .preloader { display: none; }
+    html { scroll-behavior: auto; }
+  }
+
+  /* ============================================
+     HERO
+     ============================================ */
+  .hero {
+    min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    position: relative;
+    padding: 120px var(--pad-x) 80px;
+  }
+  .hero-media {
+    position: absolute; inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    will-change: transform;
+  }
+  .hero-media .ph {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    transform: scale(1.03);
+    will-change: transform;
+    background:
+      radial-gradient(circle at 66% 42%, rgba(242,242,242,0.18), transparent 18%),
+      radial-gradient(circle at 36% 58%, rgba(120,120,120,0.12), transparent 22%),
+      linear-gradient(115deg, #050505 0%, #101010 43%, #060606 100%);
+  }
+  .hero-media .ph::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(115deg, transparent 0 42%, rgba(255,255,255,0.1) 49%, transparent 56%),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.045) 0 1px, transparent 1px 54px);
+    opacity: 0.42;
+    mix-blend-mode: screen;
+  }
+  .hero-media .ph-tag {
+    opacity: 0.28;
+  }
+  .hero-media::before {
+    content: "";
+    position: absolute; inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(255,255,255,0.12), transparent 34%),
+      linear-gradient(90deg, rgba(5,5,5,0.72), transparent 28%, transparent 70%, rgba(5,5,5,0.72));
+  }
+  .hero-media::after {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(5,5,5,0.38), rgba(5,5,5,0.74) 58%, var(--bg-1)),
+      linear-gradient(180deg, rgba(5,5,5,0.10), rgba(5,5,5,0.72));
+    z-index: 3;
+  }
+  .hero-content {
+    position: relative;
+    z-index: 4;
+    max-width: 1080px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+  .hero-content .display {
+    font-size: clamp(64px, 15vw, 184px);
+    font-weight: 700;
+    line-height: 0.82;
+    letter-spacing: -0.055em;
+  }
+  .hero-content .body { max-width: 620px; }
+  .hero-scroll-hint {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 4;
+    color: var(--text-3);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .hero-scroll-hint::after {
+    content: "";
+    width: 1px; height: 32px;
+    background: linear-gradient(to bottom, var(--text-3), transparent);
+    animation: scrollHint 2.2s var(--ease) infinite;
+  }
+  @keyframes scrollHint {
+    0% { transform: scaleY(0); transform-origin: top; opacity: 0; }
+    40% { opacity: 1; }
+    100% { transform: scaleY(1); transform-origin: top; opacity: 0; }
+  }
+
+  /* ============================================
+     AURA PARALLAX SHOWCASE
+     ============================================ */
+  .aura-showcase {
+    position: relative;
+    min-height: clamp(980px, 150vh, 1540px);
+    padding: clamp(96px, 13vw, 180px) var(--pad-x);
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 78% 18%, rgba(255,255,255,0.08), transparent 32%),
+      linear-gradient(to bottom, var(--bg-1), #080808 42%, var(--bg-1));
+    isolation: isolate;
+  }
+  .aura-showcase::before,
+  .aura-showcase::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .aura-showcase::before {
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+    background-size: 84px 84px;
+    mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 82%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 82%, transparent);
+  }
+  .aura-showcase::after {
+    z-index: 4;
+    background:
+      linear-gradient(90deg, #050505, transparent 16%, transparent 84%, #050505),
+      linear-gradient(to bottom, transparent 55%, rgba(5,5,5,0.72));
+  }
+  .aura-inner {
+    position: relative;
+    z-index: 2;
+    max-width: var(--max);
+    margin: 0 auto;
+  }
+  .aura-copy {
+    position: sticky;
+    top: 118px;
+    z-index: 6;
+    width: min(560px, 92vw);
+    display: grid;
+    gap: 22px;
+    pointer-events: none;
+  }
+  .aura-copy .h1 {
+    font-size: clamp(38px, 5.8vw, 76px);
+  }
+  .aura-gallery {
+    position: relative;
+    min-height: clamp(820px, 118vh, 1240px);
+    margin-top: clamp(26px, 6vw, 90px);
+  }
+  .aura-card {
+    position: absolute;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: #070707;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.48);
+    will-change: transform;
+  }
+  .aura-card::before,
+  .aura-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .aura-card::before {
+    background:
+      linear-gradient(to bottom, rgba(5,5,5,0.05), rgba(5,5,5,0.64)),
+      radial-gradient(circle at 50% 30%, transparent, rgba(5,5,5,0.52));
+  }
+  .aura-card::after {
+    border: 1px solid rgba(255,255,255,0.045);
+    inset: 12px;
+  }
+  .aura-card img {
+    width: 100%;
+    height: 116%;
+    max-width: none;
+    object-fit: cover;
+    filter: saturate(0.72) contrast(1.08) brightness(0.72);
+    transform: scale(1.08);
+    will-change: transform;
+  }
+  .aura-card figcaption {
+    position: absolute;
+    left: 24px;
+    bottom: 22px;
+    z-index: 3;
+    color: var(--text-1);
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    display: grid;
+    gap: 6px;
+  }
+  .aura-card figcaption span {
+    color: var(--text-3);
+    font-size: 10px;
+  }
+  .aura-card.one {
+    top: 4%;
+    right: 0;
+    width: min(62vw, 780px);
+    height: clamp(380px, 50vw, 620px);
+  }
+  .aura-card.two {
+    top: 40%;
+    left: 0;
+    width: min(44vw, 520px);
+    height: clamp(300px, 36vw, 460px);
+  }
+  .aura-card.three {
+    right: 10%;
+    bottom: 2%;
+    width: min(42vw, 560px);
+    height: clamp(280px, 32vw, 420px);
+  }
+  .aura-readout {
+    position: absolute;
+    right: min(4vw, 52px);
+    top: clamp(120px, 18vw, 220px);
+    z-index: 6;
+    color: var(--text-3);
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    display: grid;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .aura-readout strong {
+    color: var(--text-1);
+    font-weight: 500;
+  }
+
+  /* ============================================
+     PLACEHOLDER (image stand-in)
+     ============================================ */
+  .ph {
+    position: relative;
+    background: linear-gradient(135deg, #0d0d0d 0%, #161616 100%);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    color: var(--text-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .ph::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      repeating-linear-gradient(135deg, transparent 0 18px, rgba(255,255,255,0.02) 18px 19px);
+  }
+  .ph::after {
+    content: "";
+    position: absolute; left: 16px; top: 16px;
+    width: 12px; height: 12px;
+    border-left: 1px solid var(--text-3);
+    border-top: 1px solid var(--text-3);
+  }
+  .ph .ph-tag {
+    position: relative;
+    z-index: 1;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    background: rgba(5,5,5,0.7);
+    backdrop-filter: blur(6px);
+    color: var(--text-2);
+  }
+  .ph .ph-tag b {
+    color: var(--text-1);
+    font-weight: 600;
+    margin-right: 8px;
+  }
+  .ph.ph-cover { width: 100%; height: 100%; }
+
+  /* ============================================
+     SECTION RULE — divider above section titles
+     ============================================ */
+  .section-rule {
+    display: block;
+    width: 100px; height: 1px;
+    background: #1A1A1A;
+    margin: 0 auto;
+  }
+
+  /* ============================================
+     SECTION 2 — INTRO / MANIFESTO
+     ============================================ */
+  .manifesto {
+    padding: var(--sec-y) 0;
+    text-align: center;
+  }
+  .manifesto .container {
+    max-width: 880px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 36px;
+  }
+
+  /* ============================================
+     SECTION 3 — THE FORK
+     ============================================ */
+  .fork {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 80vh;
+  }
+  .fork-card {
+    position: relative;
+    min-height: 78vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px clamp(28px, 4vw, 64px);
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+    transition: background 0.4s ease;
+  }
+  .fork-card:last-child { border-right: none; border-left: 1px solid var(--border); }
+  .fork-card .fork-media {
+    position: absolute; inset: 0;
+    transition: transform 0.8s var(--ease);
+  }
+  .fork-card .fork-media .ph {
+    width: 100%; height: 100%;
+    border: none;
+    filter: saturate(0.4) brightness(0.7);
+  }
+  .fork-card .fork-media::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(5,5,5,0.65), rgba(5,5,5,0.85));
+    transition: background 0.4s ease;
+  }
+  .fork-card:hover .fork-media { transform: scale(1.05); }
+  .fork-card:hover .fork-media::after {
+    background: linear-gradient(to bottom, rgba(5,5,5,0.5), rgba(5,5,5,0.7));
+  }
+  .fork-card::before {
+    content: "";
+    position: absolute; inset: 0;
+    border: 1px solid transparent;
+    transition: border-color 0.6s var(--ease);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .fork-card:hover::before { border-color: #3A3A3A; }
+  .fork-content {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .fork-list {
+    list-style: none; padding: 0; margin: 0;
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 18px;
+    color: var(--text-3);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .fork-list li { position: relative; }
+  .fork-list li + li::before {
+    content: "·";
+    position: absolute;
+    left: -12px;
+    color: var(--text-3);
+  }
+
+  /* ============================================
+     SECTION 4 / 5 — DETAIL BLOCKS
+     ============================================ */
+  .detail {
+    padding: var(--sec-y) 0;
+  }
+  .detail-head {
+    max-width: 760px;
+    margin: 0 auto var(--sec-y);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    padding: 24px 0;
+  }
+  .detail-head .h1 { font-size: clamp(36px, 5.5vw, 72px); }
+  .detail-head .label { color: var(--text-2); }
+  .detail-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(40px, 6vw, 96px);
+    align-items: center;
+    margin-bottom: clamp(96px, 12vw, 160px);
+  }
+  .detail-block:last-child { margin-bottom: 0; }
+  .detail-block.reverse .detail-text { order: 1; }
+  .detail-block.reverse .detail-media { order: 2; }
+  .detail-text {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .detail-text .specs {
+    list-style: none; padding: 0; margin: 8px 0 0;
+    display: grid;
+    gap: 12px;
+  }
+  .detail-text .specs li {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    gap: 14px;
+    align-items: start;
+    color: var(--text-2);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .detail-text .specs li::before {
+    content: "";
+    width: 14px; height: 14px;
+    margin-top: 5px;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A1' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='4 12 10 18 20 6'/></svg>") center/contain no-repeat;
+  }
+  .detail-text .note {
+    margin-top: 4px;
+    color: var(--text-3);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+  }
+  .detail-media .ph {
+    aspect-ratio: 4/3;
+    width: 100%;
+  }
+
+  /* ============================================
+     SECTION 6 — PROCESO
+     ============================================ */
+  .proceso {
+    padding: var(--sec-y) 0;
+    background: linear-gradient(to bottom, transparent, rgba(15,15,15,0.6), transparent);
+  }
+  .proceso-head {
+    max-width: 720px;
+    margin: 0 auto 96px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .step {
+    padding: 48px 32px;
+    background: var(--bg-1);
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-height: 280px;
+  }
+  .step-num {
+    font-size: 48px;
+    font-weight: 300;
+    color: var(--text-3);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .step-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-1);
+    margin: 0;
+  }
+  .step-body {
+    color: var(--text-2);
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ============================================
+     SECTION 7 — PORTAFOLIO
+     ============================================ */
+  .portfolio {
+    padding: var(--sec-y) 0;
+  }
+  .portfolio-head {
+    max-width: 720px;
+    margin: 0 auto 80px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: 160px;
+    gap: 16px;
+  }
+  .pf-item {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .pf-item .ph {
+    width: 100%; height: 100%;
+    border: none;
+    transition: transform 0.8s var(--ease);
+  }
+  .pf-item:hover .ph { transform: scale(1.04); }
+  .pf-item .pf-overlay {
+    position: absolute; inset: 0;
+    background: rgba(5,5,5,0.55);
+    opacity: 0;
+    transition: opacity 0.5s var(--ease);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+  .pf-item:hover .pf-overlay { opacity: 1; }
+  .pf-item:hover .ph { transform: scale(1.03); }
+  .pf-item .pf-tag {
+    color: var(--text-1);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transform: translateY(8px);
+    transition: transform 0.5s var(--ease);
+  }
+  .pf-item:hover .pf-tag { transform: translateY(0); }
+  .pf-item .pf-tag span {
+    color: var(--text-3);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  /* asymmetric placement */
+  .pf-1 { grid-column: span 4; grid-row: span 2; }
+  .pf-2 { grid-column: span 2; grid-row: span 2; }
+  .pf-3 { grid-column: span 2; grid-row: span 2; }
+  .pf-4 { grid-column: span 2; grid-row: span 2; }
+  .pf-5 { grid-column: span 2; grid-row: span 3; }
+  .pf-6 { grid-column: span 4; grid-row: span 2; }
+  .pf-7 { grid-column: span 2; grid-row: span 2; }
+  .pf-8 { grid-column: span 4; grid-row: span 2; }
+
+  /* ============================================
+     TECH SIGNAL
+     ============================================ */
+  .tech-signal {
+    min-height: clamp(660px, 78vh, 820px);
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    padding: clamp(72px, 9vw, 132px) 0;
+    background: #050505;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    isolation: isolate;
+  }
+  .tech-signal::before,
+  .tech-signal::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .tech-signal::before {
+    background:
+      linear-gradient(90deg, #050505 0%, rgba(5,5,5,0.18) 38%, rgba(5,5,5,0.18) 62%, #050505 100%),
+      radial-gradient(circle at 50% 40%, rgba(255,255,255,0.10), transparent 46%);
+  }
+  .tech-signal::after {
+    background:
+      linear-gradient(to bottom, #050505, transparent 20%, transparent 76%, #050505),
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: auto, 96px 96px, 96px 96px;
+  }
+  .tech-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    opacity: 1;
+  }
+  .tech-signal .container {
+    position: relative;
+    z-index: 2;
+    min-height: clamp(520px, 64vh, 700px);
+    display: grid;
+    grid-template-columns: minmax(0, 0.72fr) minmax(280px, 0.28fr);
+    align-items: end;
+    gap: clamp(32px, 8vw, 96px);
+  }
+  .tech-copy {
+    max-width: 520px;
+    display: grid;
+    gap: 22px;
+  }
+  .tech-copy .h1 {
+    max-width: 620px;
+    font-size: clamp(34px, 4.6vw, 58px);
+  }
+  .signal-readout {
+    justify-self: end;
+    width: min(100%, 340px);
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(10,10,10,0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 24px;
+    display: grid;
+    gap: 16px;
+  }
+  .signal-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .signal-row strong {
+    color: var(--text-1);
+    font-weight: 500;
+  }
+
+  /* ============================================
+     FOOTER
+     ============================================ */
+  .footer {
+    background: var(--bg-1);
+    border-top: 1px solid #1A1A1A;
+    padding: 64px 0 32px;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 48px;
+  }
+  .footer h4 {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin: 0 0 20px;
+  }
+  .footer .brand { font-size: 18px; }
+  .footer .body { font-size: 14px; margin-top: 20px; max-width: 320px; }
+  .footer ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .footer a {
+    color: var(--text-2);
+    font-size: 14px;
+    transition: color 0.2s ease;
+  }
+  .footer a:hover { color: var(--text-1); }
+  .footer-bottom {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-3);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+  .footer-bottom a:hover { color: var(--text-1); }
+
+  /* WhatsApp glyph color override stays white */
+  .wa-icon { color: currentColor; }
+
+  /* Logo image swap-in for brand mark */
+  .brand-logo {
+    height: 32px;
+    width: auto;
+    display: block;
+    /* logo PNG is already white-on-transparent */
+  }
+  .footer .brand-logo { height: 40px; }
+  .mobile-menu .brand-logo { height: 28px; }
+
+  /* ============================================
+     RESPONSIVE
+     ============================================ */
+  @media (max-width: 1024px) {
+    .nav-links { gap: 24px; }
+    .aura-showcase { min-height: 1240px; }
+    .aura-card.one { width: 70vw; }
+    .aura-card.two { width: 52vw; }
+    .aura-card.three { width: 50vw; right: 0; }
+    .fork { grid-template-columns: 1fr; }
+    .fork-card { min-height: 60vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .fork-card:last-child { border-left: none; }
+    .detail-block { grid-template-columns: 1fr; gap: 32px; }
+    .detail-block.reverse .detail-text,
+    .detail-block.reverse .detail-media { order: initial; }
+    .detail-block .detail-media { order: 1; }
+    .detail-block .detail-text  { order: 2; }
+    .steps { grid-template-columns: repeat(2, 1fr); }
+    .portfolio-grid { grid-auto-rows: 140px; }
+    .tech-signal .container { grid-template-columns: 1fr; }
+    .signal-readout { justify-self: start; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 720px) {
+    .nav-links { display: none; }
+    .nav-cta { display: none; }
+    .nav-burger { display: inline-flex; }
+    .aura-showcase {
+      min-height: auto;
+      padding: 80px var(--pad-x);
+    }
+    .aura-copy {
+      position: relative;
+      top: auto;
+      margin-bottom: 34px;
+    }
+    .aura-gallery {
+      display: grid;
+      gap: 18px;
+      min-height: auto;
+      margin-top: 0;
+    }
+    .aura-card,
+    .aura-card.one,
+    .aura-card.two,
+    .aura-card.three {
+      position: relative;
+      inset: auto;
+      width: 100%;
+      height: 320px;
+    }
+    .aura-card.two { height: 260px; }
+    .aura-card.three { height: 280px; }
+    .aura-readout { display: none; }
+    .steps { grid-template-columns: 1fr; }
+    .step { min-height: auto; }
+    .portfolio-grid {
+      grid-template-columns: 1fr 1fr;
+      grid-auto-rows: 180px;
+    }
+    .pf-1, .pf-6, .pf-8 { grid-column: span 2; grid-row: span 2; }
+    .pf-5 { grid-row: span 2; }
+    .hero-content .display { font-size: clamp(58px, 19vw, 104px); }
+    .tech-signal { min-height: 760px; }
+    .tech-signal .container { min-height: 620px; }
+    .tech-copy .h1 { font-size: clamp(34px, 12vw, 54px); }
+    .signal-readout { width: 100%; }
+    .footer-grid { grid-template-columns: 1fr; gap: 40px; }
+    .footer-bottom { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+</style>
+</head>
+<body class="preloading">
+
+<!-- ============= PRELOADER ============= -->
+<div class="preloader" id="preloader" aria-hidden="true">
+  <img class="preloader-mark" src="assets/7fitment-logo.png" alt="7Fitment" />
+</div>
+
+<!-- ============= PRECISION GRID BG ============= -->
+<div class="grid-bg" id="gridBg" aria-hidden="true"></div>
+
+<!-- ============= NAV ============= -->
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#top" class="brand" aria-label="7Fitment, inicio">
+      <img class="brand-logo" src="assets/7fitment-logo.png" alt="7Fitment" />
+    </a>
+    <nav class="nav-links" aria-label="Principal">
+      <a href="#servicios">Servicios</a>
+      <a href="#proceso">Proceso</a>
+      <a href="#portafolio">Portafolio</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-secondary" href="/enlaces" target="_top">
+        Nuestros enlaces
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+    <button class="nav-burger" id="burger" aria-label="Abrir menú" aria-controls="mobileMenu" aria-expanded="false">
+      <span></span>
+    </button>
+  </div>
+</header>
+
+<div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+  <div class="mobile-menu-top">
+    <a href="#top" class="brand">
+      <img class="brand-logo" src="assets/7fitment-logo.png" alt="7Fitment" />
+    </a>
+    <button class="mobile-menu-close" id="burgerClose" aria-label="Cerrar menú"></button>
+  </div>
+  <nav aria-label="Menú móvil">
+    <a href="#servicios" data-close>Servicios</a>
+    <a href="#proceso" data-close>Proceso</a>
+    <a href="#portafolio" data-close>Portafolio</a>
+    <a href="/enlaces" target="_top" data-close>Nuestros enlaces</a>
+  </nav>
+  <div class="mobile-menu-foot">7Fitment · Satélite, Edo. Méx.</div>
+</div>
+
+<a id="top"></a>
+
+<!-- ============= 1. HERO ============= -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-media" aria-hidden="true">
+    <div class="ph ph-cover">
+      <span class="ph-tag"><b>V-001 / H-001</b>Hero placeholder premium</span>
+    </div>
+  </div>
+  <div class="hero-content">
+    <span class="label hero-in h-1">7Fitment — Satélite, Edo. Méx.</span>
+    <h1 id="hero-title" class="display hero-in h-2 split-source" data-split="letters">7FITMENT</h1>
+    <p class="body hero-in h-3 split-source" data-split="words">Personalización y protección automotriz de alto nivel. Transformamos vehículos con procesos especializados y materiales premium.</p>
+    <div class="hero-in h-4">
+      <a class="btn btn-primary lg" href="/t/web_whatsapp" target="_top">
+        <svg class="wa-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M17.6 14.3c-.3-.2-1.7-.8-2-.9-.3-.1-.5-.2-.7.2-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.2-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.7.4-.2.3-.9.9-.9 2.2 0 1.3.9 2.5 1.1 2.7.1.2 1.8 2.8 4.4 3.9.6.3 1.1.4 1.5.5.6.2 1.2.2 1.6.1.5-.1 1.7-.7 1.9-1.3.2-.7.2-1.2.2-1.3-.1-.2-.3-.2-.6-.3zM12 3a9 9 0 0 0-7.6 13.8L3 21l4.3-1.4A9 9 0 1 0 12 3zm0 16.3a7.3 7.3 0 0 1-3.8-1l-.3-.2-2.6.9.9-2.5-.2-.3a7.3 7.3 0 1 1 6 3.1z"/>
+        </svg>
+        Cotizar por WhatsApp
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+  </div>
+  <span class="hero-scroll-hint" aria-hidden="true">Scroll</span>
+</section>
+
+<!-- ============= 2. AURA SHOWCASE ============= -->
+<section class="aura-showcase" aria-labelledby="aura-title">
+  <div class="aura-inner">
+    <div class="aura-copy">
+      <span class="label reveal">— Aura premium</span>
+      <h2 id="aura-title" class="h1 reveal">Profundidad visual sin artificios imposibles.</h2>
+      <p class="body reveal" data-delay="1">Una galería cinética de acabados, luz y precisión: capas que se desplazan a distinta velocidad para sentir el volumen del proceso.</p>
+    </div>
+    <div class="aura-readout" aria-hidden="true">
+      <span>Layer 01 <strong>Surface</strong></span>
+      <span>Layer 02 <strong>Film</strong></span>
+      <span>Layer 03 <strong>Aura</strong></span>
+    </div>
+    <div class="aura-gallery" aria-label="Galería premium con parallax">
+      <figure class="aura-card one" data-aura-speed="0.34">
+        <img src="https://images.pexels.com/photos/8105778/pexels-photo-8105778.jpeg?auto=compress&cs=tinysrgb&w=2200" alt="Auto deportivo negro en garage moderno" />
+        <figcaption><span>01 / Finish</span>PPF Mate</figcaption>
+      </figure>
+      <figure class="aura-card two" data-aura-speed="-0.22">
+        <img src="https://images.pexels.com/photos/358070/pexels-photo-358070.jpeg?auto=compress&cs=tinysrgb&w=1800" alt="Auto premium sobre carretera" />
+        <figcaption><span>02 / Motion</span>Wrap Satinado</figcaption>
+      </figure>
+      <figure class="aura-card three" data-aura-speed="0.18">
+        <img src="https://images.pexels.com/photos/170811/pexels-photo-170811.jpeg?auto=compress&cs=tinysrgb&w=1800" alt="Detalle frontal de vehículo de lujo" />
+        <figcaption><span>03 / Protection</span>Cerámico</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============= 3. MANIFESTO ============= -->
+<section class="manifesto">
+  <div class="container">
+    <span class="section-rule reveal" aria-hidden="true"></span>
+    <span class="label reveal" data-delay="1">— Filosofía</span>
+    <h2 class="h1 reveal" data-delay="2">Más que un taller.<br/>Un laboratorio de acabados.</h2>
+    <p class="body reveal" data-delay="3" style="max-width: 640px;">En 7Fitment trabajamos cada vehículo como un proyecto único, cuidando cada detalle desde la preparación hasta la entrega final. No hacemos trabajos rápidos. Hacemos trabajos que duran.</p>
+  </div>
+</section>
+
+<!-- ============= 3. THE FORK ============= -->
+<section class="fork" id="servicios" aria-label="Servicios">
+  <a href="#personalizacion" class="fork-card">
+    <div class="fork-media" aria-hidden="true">
+      <div class="ph ph-cover">
+        <span class="ph-tag"><b>F-001</b>Personalización</span>
+      </div>
+    </div>
+    <div class="fork-content">
+      <span class="label dot reveal">Personalización</span>
+      <h2 class="h1 reveal" data-delay="1">Cambia la apariencia</h2>
+      <p class="body reveal" data-delay="2">Cambia completamente la apariencia de tu vehículo con acabados de alto nivel.</p>
+      <ul class="fork-list reveal" data-delay="3">
+        <li>Wrap</li>
+        <li>PPF Color</li>
+        <li>Diseños Personalizados</li>
+      </ul>
+      <div class="reveal" data-delay="4">
+        <span class="btn btn-secondary">
+          Ver personalización
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </div>
+    </div>
+  </a>
+
+  <a href="#proteccion" class="fork-card">
+    <div class="fork-media" aria-hidden="true">
+      <div class="ph ph-cover">
+        <span class="ph-tag"><b>F-002</b>Protección</span>
+      </div>
+    </div>
+    <div class="fork-content">
+      <span class="label dot reveal">Protección</span>
+      <h2 class="h1 reveal" data-delay="1">Preserva el valor</h2>
+      <p class="body reveal" data-delay="2">Protege la pintura original contra desgaste, rayones e impactos.</p>
+      <ul class="fork-list reveal" data-delay="3">
+        <li>PPF Transparente</li>
+        <li>Cerámico</li>
+        <li>Corrección de pintura</li>
+      </ul>
+      <div class="reveal" data-delay="4">
+        <span class="btn btn-secondary">
+          Ver protección
+          <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </div>
+    </div>
+  </a>
+</section>
+
+<!-- ============= 4. PERSONALIZACIÓN DETAIL ============= -->
+<section class="detail" id="personalizacion" aria-labelledby="personalizacion-title">
+  <div class="container">
+    <header class="detail-head">
+      <span class="section-rule reveal" aria-hidden="true"></span>
+      <span class="label reveal" data-delay="1">Personalización Automotriz</span>
+      <h2 id="personalizacion-title" class="h1 reveal" data-delay="2">Acabados que no se ven en la calle.</h2>
+    </header>
+
+    <!-- 4.1 Wrap -->
+    <div class="detail-block">
+      <div class="detail-media reveal-left">
+        <div class="ph">
+          <span class="ph-tag"><b>P-001</b>Wrap close-up</span>
+        </div>
+      </div>
+      <div class="detail-text reveal-right" data-delay="1">
+        <span class="label">Vinyl Wrap</span>
+        <h3 class="h2">Más de 700 colores. Infinitas posibilidades.</h3>
+        <p class="body">Desde colores base hasta acabados especiales como perlados o cromos. Instalación especializada según la geometría de cada vehículo.</p>
+        <ul class="specs">
+          <li>Más de 1000 colores disponibles</li>
+          <li>Calidades premium seleccionadas</li>
+          <li>Acabados: Brillante, Mate, Satinado, Perlado, Cromo</li>
+          <li>Durabilidad garantizada</li>
+        </ul>
+        <p class="note">El costo varía según el vehículo y la complejidad del diseño.</p>
+      </div>
+    </div>
+
+    <!-- 4.2 Diseños -->
+    <div class="detail-block reverse">
+      <div class="detail-media reveal-right">
+        <div class="ph">
+          <span class="ph-tag"><b>P-002</b>Diseño personalizado completo</span>
+        </div>
+      </div>
+      <div class="detail-text reveal-left" data-delay="1">
+        <span class="label">Diseños Personalizados</span>
+        <h3 class="h2">Diseños que no se repiten</h3>
+        <p class="body">Parciales, completos o impresión personalizada. Si lo imaginas, lo ejecutamos con precisión milimétrica.</p>
+        <ul class="specs">
+          <li>Wraps parciales o completos</li>
+          <li>Impresión digital de alta resolución</li>
+          <li>Asesoría creativa en el concepto</li>
+          <li>Trazo y corte con plantilla a medida</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 4.3 PPF Color -->
+    <div class="detail-block">
+      <div class="detail-media reveal-left">
+        <div class="ph">
+          <span class="ph-tag"><b>P-003</b>PPF Color</span>
+        </div>
+      </div>
+      <div class="detail-text reveal-right" data-delay="1">
+        <span class="label">PPF Color</span>
+        <h3 class="h2">Color con protección integrada</h3>
+        <p class="body">La alternativa definitiva: cambia el color de tu vehículo mientras proteges la pintura original con una película de alto impacto.</p>
+        <ul class="specs">
+          <li>Película de poliuretano de alto desempeño</li>
+          <li>Cambio de color sin perder protección</li>
+          <li>Reversible: respeta la pintura de fábrica</li>
+          <li>Acabados disponibles: brillante, mate, satinado</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============= 5. PROTECCIÓN DETAIL ============= -->
+<section class="detail" id="proteccion" aria-labelledby="proteccion-title">
+  <div class="container">
+    <header class="detail-head">
+      <span class="section-rule reveal" aria-hidden="true"></span>
+      <span class="label reveal" data-delay="1">Protección Automotriz</span>
+      <h2 id="proteccion-title" class="h1 reveal" data-delay="2">Cuida lo que ya tienes. A largo plazo.</h2>
+    </header>
+
+    <!-- 5.1 PPF Transparente -->
+    <div class="detail-block">
+      <div class="detail-media reveal-left">
+        <div class="ph">
+          <span class="ph-tag"><b>R-001</b>PPF — instalación / water beading</span>
+        </div>
+      </div>
+      <div class="detail-text reveal-right" data-delay="1">
+        <span class="label">Paint Protection Film</span>
+        <h3 class="h2">Blindaje invisible para tu pintura</h3>
+        <p class="body">Película de poliuretano termoplástico que absorbe impactos, evita rayones y mantiene el acabado de fábrica.</p>
+        <ul class="specs">
+          <li>Acabado brillante o mate / satinado</li>
+          <li>Aplicación en carrocería completa o parcial</li>
+          <li>Windshield protection disponible</li>
+          <li>Conversión de brillo a mate sin pintar</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 5.2 Cerámico -->
+    <div class="detail-block reverse">
+      <div class="detail-media reveal-right">
+        <div class="ph">
+          <span class="ph-tag"><b>R-002</b>Cerámico — hidrofóbico</span>
+        </div>
+      </div>
+      <div class="detail-text reveal-left" data-delay="1">
+        <span class="label">Cerámico</span>
+        <h3 class="h2">Protección química de largo plazo</h3>
+        <p class="body">Recubrimiento líquido que sella la superficie contra contaminantes, rayones leves y oxidación. Facilita la limpieza y mantiene el brillo.</p>
+        <ul class="specs">
+          <li>Hidrofóbico extremo</li>
+          <li>Protección UV y química</li>
+          <li>Opciones por duración (1–5 años)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 5.3 Corrección -->
+    <div class="detail-block">
+      <div class="detail-media reveal-left">
+        <div class="ph">
+          <span class="ph-tag"><b>R-003</b>Corrección de pintura</span>
+        </div>
+      </div>
+      <div class="detail-text reveal-right" data-delay="1">
+        <span class="label">Corrección de Pintura</span>
+        <h3 class="h2">Recupera el acabado de fábrica</h3>
+        <p class="body">Eliminación de hologramas, swirls y micro-rayones. Devolvemos la profundidad y claridad a tu pintura antes de protegerla.</p>
+        <ul class="specs">
+          <li>Pulido multietapa</li>
+          <li>Eliminación de imperfecciones</li>
+          <li>Preparación ideal para PPF o cerámico</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============= 6. PROCESO ============= -->
+<section class="proceso" id="proceso" aria-labelledby="proceso-title">
+  <div class="container">
+    <header class="proceso-head">
+      <span class="section-rule reveal" aria-hidden="true"></span>
+      <span class="label reveal" data-delay="1">Proceso</span>
+      <h2 id="proceso-title" class="h1 reveal" data-delay="2">Proceso diseñado para el detalle</h2>
+      <p class="body reveal" data-delay="3" style="max-width: 560px;">Cada etapa está pensada para garantizar un acabado de alto nivel. Sin atajos.</p>
+    </header>
+    <ol class="steps" role="list">
+      <li class="step reveal">
+        <span class="step-num">01</span>
+        <h3 class="step-title">Diagnóstico</h3>
+        <p class="step-body">Evaluamos el estado del vehículo y definimos el alcance exacto.</p>
+      </li>
+      <li class="step reveal" data-delay="1">
+        <span class="step-num">02</span>
+        <h3 class="step-title">Preparación</h3>
+        <p class="step-body">Lavado químico, descontaminación y desmontaje de piezas si es necesario.</p>
+      </li>
+      <li class="step reveal" data-delay="2">
+        <span class="step-num">03</span>
+        <h3 class="step-title">Instalación</h3>
+        <p class="step-body">Aplicación especializada en ambiente controlado.</p>
+      </li>
+      <li class="step reveal" data-delay="3">
+        <span class="step-num">04</span>
+        <h3 class="step-title">Revisión</h3>
+        <p class="step-body">Inspección final bajo luz LED antes de la entrega.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============= 7. PORTAFOLIO ============= -->
+<section class="portfolio" id="portafolio" aria-labelledby="portafolio-title">
+  <div class="container">
+    <header class="portfolio-head">
+      <span class="section-rule reveal" aria-hidden="true"></span>
+      <span class="label reveal" data-delay="1">Portafolio</span>
+      <h2 id="portafolio-title" class="h1 reveal" data-delay="2">Trabajos recientes</h2>
+      <p class="body reveal" data-delay="3" style="max-width: 560px;">Resultados reales. Sin renders. Sin stock.</p>
+    </header>
+    <div class="portfolio-grid">
+      <figure class="pf-item pf-1 reveal">
+        <div class="ph"><span class="ph-tag"><b>PT-01</b>Wrap completo · 3/4</span></div>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Wrap</span>Audi RS — wrap completo</span></figcaption>
+      </figure>
+      <figure class="pf-item pf-2 reveal" data-delay="1">
+        <div class="ph"><span class="ph-tag"><b>PT-02</b>Detalle de borde</span></div>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Detalle</span>Edge work — manija</span></figcaption>
+      </figure>
+      <figure class="pf-item pf-3 reveal" data-delay="2">
+        <div class="ph"><span class="ph-tag"><b>PT-03</b>PPF brillante</span></div>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>PPF</span>Porsche 911 — carrocería completa</span></figcaption>
+      </figure>
+      <figure class="pf-item pf-4 reveal">
+        <div class="ph"><span class="ph-tag"><b>PT-04</b>Caliper / rueda</span></div>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Detalle</span>Acabado de rueda</span></figcaption>
+      </figure>
+      <figure class="pf-item pf-5 reveal" data-delay="1">
+        <div class="ph"><span class="ph-tag"><b>PT-08</b>Cerámico — fondo negro</span></div>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Cerámico</span>BMW M3 — brillo extremo</span></figcaption>
+      </figure>
+      <figure class="pf-item pf-6 reveal" data-delay="2">
+        <div class="ph"><span class="ph-tag"><b>PT-05</b>Diseño personalizado</span></div>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Custom</span>Audi RS5 — diseño completo</span></figcaption>
+      </figure>
+      <figure class="pf-item pf-7 reveal">
+        <div class="ph"><span class="ph-tag"><b>PT-06</b>Windshield PPF</span></div>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>PPF</span>Mercedes AMG — parabrisas</span></figcaption>
+      </figure>
+      <figure class="pf-item pf-8 reveal" data-delay="1">
+        <div class="ph"><span class="ph-tag"><b>PT-07</b>Antes / Después</span></div>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Corrección</span>Antes / Después</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============= 8. TECH SIGNAL ============= -->
+<section class="tech-signal" aria-label="Precisión técnica 7Fitment">
+  <canvas class="tech-canvas" id="surfaceScannerCanvas" aria-hidden="true"></canvas>
+  <div class="container">
+    <div class="tech-copy">
+      <span class="label reveal">— Diagnóstico visual</span>
+      <h2 class="h1 reveal" data-delay="1">Precisión visible antes de tocar la pintura.</h2>
+      <p class="body reveal" data-delay="2">Cada línea, borde y curva se lee como una superficie técnica: preparación, instalación, revisión y entrega sin atajos.</p>
+    </div>
+    <div class="signal-readout reveal-right" data-delay="2" aria-hidden="true">
+      <div class="signal-row"><span>Surface</span><strong>Scan</strong></div>
+      <div class="signal-row"><span>Wrap / PPF</span><strong>Ready</strong></div>
+      <div class="signal-row"><span>Finish</span><strong>Premium</strong></div>
+      <div class="signal-row"><span>7F Signal</span><strong>Live</strong></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============= 9. FOOTER ============= -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="#top" class="brand">
+          <img class="brand-logo" src="assets/7fitment-logo.png" alt="7Fitment" />
+        </a>
+        <p class="body">Personalización y protección para autos. Satélite, Edo. Méx.</p>
+      </div>
+      <div>
+        <h4>Navegación</h4>
+        <ul>
+          <li><a href="#servicios">Servicios</a></li>
+          <li><a href="#proceso">Proceso</a></li>
+          <li><a href="#portafolio">Portafolio</a></li>
+          <li><a href="/enlaces" target="_top">Nuestros enlaces</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Síguenos</h4>
+        <ul>
+          <li><a href="/t/web_instagram" target="_top">Instagram · @7fitment</a></li>
+          <li><a href="/t/web_whatsapp" target="_top">WhatsApp</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 7Fitment. Todos los derechos reservados.</span>
+      <a href="#">Política de privacidad</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script>
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var gsapApi = window.gsap;
+  if (gsapApi && window.ScrollTrigger) gsapApi.registerPlugin(window.ScrollTrigger);
+
+  // ---- GSAP text reveals ----
+  function splitText(el) {
+    var mode = el.getAttribute('data-split') || 'words';
+    var text = (el.textContent || '').trim();
+    var units = [];
+    var frag = document.createDocumentFragment();
+    var parts = mode === 'letters' ? text.split('') : text.split(/(\s+)/);
+
+    el.textContent = '';
+    el.classList.add('split-ready');
+
+    parts.forEach(function (part) {
+      if (!part) return;
+      if (/^\s+$/.test(part)) {
+        if (mode === 'letters') {
+          var space = document.createElement('span');
+          space.className = 'split-space';
+          frag.appendChild(space);
+        } else {
+          frag.appendChild(document.createTextNode(part));
+        }
+        return;
+      }
+
+      var mask = document.createElement('span');
+      var unit = document.createElement('span');
+      mask.className = 'split-mask';
+      unit.className = 'split-unit';
+      unit.textContent = part;
+      mask.appendChild(unit);
+      frag.appendChild(mask);
+      units.push(unit);
+    });
+
+    el.appendChild(frag);
+    return units;
+  }
+
+  var splitUnits = Array.prototype.slice.call(document.querySelectorAll('[data-split]')).reduce(function (acc, el) {
+    return acc.concat(splitText(el));
+  }, []);
+
+  function revealSplitText() {
+    if (!splitUnits.length) return;
+    if (reduce) {
+      splitUnits.forEach(function (unit) {
+        unit.style.opacity = '1';
+        unit.style.transform = 'none';
+      });
+      return;
+    }
+    if (gsapApi) {
+      gsapApi.to(splitUnits, {
+        y: 0,
+        yPercent: 0,
+        opacity: 1,
+        duration: 1.05,
+        stagger: 0.028,
+        ease: 'power4.out',
+        delay: 0.05
+      });
+      gsapApi.fromTo('.hero-media .ph', { scale: 1.08 }, { scale: 1.03, duration: 2.2, ease: 'power3.out' });
+      return;
+    }
+    splitUnits.forEach(function (unit, index) {
+      unit.style.transition = 'opacity 0.8s var(--ease), transform 0.8s var(--ease)';
+      unit.style.transitionDelay = (index * 28) + 'ms';
+      unit.style.opacity = '1';
+      unit.style.transform = 'translate3d(0,0,0)';
+    });
+  }
+
+  // ---- Preloader ----
+  var preloader = document.getElementById('preloader');
+  function dismissPreloader() {
+    document.body.classList.remove('preloading');
+    if (preloader) {
+      preloader.classList.add('fade');
+      setTimeout(function () { preloader.remove(); }, 800);
+    }
+    revealSplitText();
+  }
+  if (reduce) {
+    dismissPreloader();
+  } else {
+    window.addEventListener('load', function () {
+      setTimeout(dismissPreloader, 1400);
+    });
+    // safety net in case `load` is already past
+    setTimeout(function () {
+      if (document.body.classList.contains('preloading')) dismissPreloader();
+    }, 3500);
+  }
+
+  // ---- Precision Grid mouse follower ----
+  var gridBg = document.getElementById('gridBg');
+  var targetX = window.innerWidth / 2, targetY = window.innerHeight / 2;
+  var curX = targetX, curY = targetY;
+  function tickGrid() {
+    curX += (targetX - curX) * 0.12;
+    curY += (targetY - curY) * 0.12;
+    gridBg.style.setProperty('--mx', curX + 'px');
+    gridBg.style.setProperty('--my', curY + 'px');
+    requestAnimationFrame(tickGrid);
+  }
+  window.addEventListener('pointermove', function (e) {
+    targetX = e.clientX; targetY = e.clientY;
+  }, { passive: true });
+  requestAnimationFrame(tickGrid);
+
+  // ---- Parallax (hero + technical media cards) ----
+  var heroMedia = document.querySelector('.hero-media');
+  var parallaxEls = Array.prototype.slice.call(document.querySelectorAll('.detail-media .ph'));
+  var ticking = false;
+  function applyParallax() {
+    var y = window.scrollY;
+    if (heroMedia && y < window.innerHeight * 1.2) {
+      heroMedia.style.transform = 'translate3d(0,' + (y * 0.5) + 'px, 0)';
+    }
+    parallaxEls.forEach(function (el) {
+      var rect = el.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+      var centerOffset = (rect.top + rect.height / 2) - window.innerHeight / 2;
+      var move = centerOffset * -0.035;
+      el.style.transform = 'translate3d(0,' + move.toFixed(2) + 'px,0) scale(1.025)';
+    });
+    ticking = false;
+  }
+  if (!reduce) {
+    document.addEventListener('scroll', function () {
+      if (!ticking) {
+        requestAnimationFrame(applyParallax);
+        ticking = true;
+      }
+    }, { passive: true });
+    applyParallax();
+  }
+
+  // ---- Nav scroll state ----
+  var nav = document.getElementById('nav');
+  function onScroll() {
+    if (window.scrollY > 50) nav.classList.add('scrolled');
+    else nav.classList.remove('scrolled');
+  }
+  document.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  // ---- Mobile menu ----
+  var burger = document.getElementById('burger');
+  var menu = document.getElementById('mobileMenu');
+  var closeBtn = document.getElementById('burgerClose');
+  function openMenu() {
+    menu.classList.add('open');
+    menu.setAttribute('aria-hidden', 'false');
+    burger.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeMenu() {
+    menu.classList.remove('open');
+    menu.setAttribute('aria-hidden', 'true');
+    burger.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+  burger.addEventListener('click', openMenu);
+  closeBtn.addEventListener('click', closeMenu);
+  menu.querySelectorAll('[data-close]').forEach(function (a) {
+    a.addEventListener('click', closeMenu);
+  });
+
+  // ---- Aura parallax showcase ----
+  function initAuraShowcase() {
+    if (!gsapApi || !window.ScrollTrigger || reduce) return;
+
+    gsapApi.utils.toArray('.aura-card').forEach(function (card) {
+      var speed = parseFloat(card.getAttribute('data-aura-speed') || '0.2');
+      var distance = Math.round(260 * speed);
+      var image = card.querySelector('img');
+
+      gsapApi.fromTo(card, {
+        y: distance,
+        rotate: speed * -2
+      }, {
+        y: -distance,
+        rotate: speed * 2,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.aura-showcase',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1.1
+        }
+      });
+
+      if (image) {
+        gsapApi.fromTo(image, {
+          y: -Math.abs(distance) * 0.32,
+          scale: 1.1
+        }, {
+          y: Math.abs(distance) * 0.34,
+          scale: 1.04,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: card,
+            start: 'top bottom',
+            end: 'bottom top',
+            scrub: 0.9
+          }
+        });
+      }
+    });
+  }
+  initAuraShowcase();
+
+  // ---- Viewport title reveals (word masks + power4 stagger) ----
+  function initPremiumTextReveals() {
+    var targets = Array.prototype.slice.call(document.querySelectorAll('.h1.reveal, .aura-copy .h1, .tech-copy .h1'))
+      .filter(function (el) { return !el.hasAttribute('data-split') && !el.dataset.premiumSplit; });
+
+    function splitPremiumWords(el) {
+      var text = (el.textContent || '').trim();
+      var frag = document.createDocumentFragment();
+      var units = [];
+      el.textContent = '';
+      el.dataset.premiumSplit = 'true';
+      el.classList.add('premium-split');
+
+      text.split(/(\s+)/).forEach(function (part) {
+        if (!part) return;
+        if (/^\s+$/.test(part)) {
+          var space = document.createElement('span');
+          space.className = 'premium-word-space';
+          frag.appendChild(space);
+          return;
+        }
+        var mask = document.createElement('span');
+        var word = document.createElement('span');
+        mask.className = 'premium-word-mask';
+        word.className = 'premium-word';
+        word.textContent = part;
+        mask.appendChild(word);
+        frag.appendChild(mask);
+        units.push(word);
+      });
+
+      el.appendChild(frag);
+      return units;
+    }
+
+    var entries = targets.map(function (el) {
+      return { el: el, units: splitPremiumWords(el) };
+    });
+
+    if (reduce) {
+      entries.forEach(function (entry) {
+        entry.units.forEach(function (unit) {
+          unit.style.opacity = '1';
+          unit.style.transform = 'none';
+        });
+      });
+      return;
+    }
+
+    var titleIo = new IntersectionObserver(function (items) {
+      items.forEach(function (item) {
+        if (!item.isIntersecting) return;
+        var found = entries.find(function (entry) { return entry.el === item.target; });
+        if (!found) return;
+        if (gsapApi) {
+          gsapApi.to(found.units, {
+            yPercent: 0,
+            y: 0,
+            opacity: 1,
+            duration: 1,
+            stagger: 0.045,
+            ease: 'power4.out'
+          });
+        } else {
+          found.units.forEach(function (unit, index) {
+            unit.style.transition = 'opacity 0.72s var(--ease), transform 0.72s var(--ease)';
+            unit.style.transitionDelay = (index * 45) + 'ms';
+            unit.style.opacity = '1';
+            unit.style.transform = 'translate3d(0,0,0)';
+          });
+        }
+        titleIo.unobserve(item.target);
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.18 });
+
+    entries.forEach(function (entry) { titleIo.observe(entry.el); });
+  }
+  initPremiumTextReveals();
+
+  // ---- Surface scanner canvas: dot grid + magnetic aura ----
+  function initSurfaceScanner() {
+    var canvas = document.getElementById('surfaceScannerCanvas');
+    if (!canvas) return;
+    var section = canvas.closest('.tech-signal');
+    var ctx = canvas.getContext('2d', { alpha: true });
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var width = 0;
+    var height = 0;
+    var cols = 0;
+    var rows = 0;
+    var gap = 28;
+    var points = [];
+    var running = false;
+    var raf = 0;
+    var pointerActive = false;
+    var pointerX = 0;
+    var pointerY = 0;
+    var targetX = 0;
+    var targetY = 0;
+
+    function resize() {
+      var rect = canvas.getBoundingClientRect();
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      gap = width < 720 ? 22 : 30;
+      cols = Math.floor(width / gap) + 1;
+      rows = Math.floor(height / gap) + 1;
+      points = [];
+
+      var offsetX = (width - (cols - 1) * gap) / 2;
+      var offsetY = (height - (rows - 1) * gap) / 2;
+      for (var y = 0; y < rows; y += 1) {
+        for (var x = 0; x < cols; x += 1) {
+          points.push({
+            x: offsetX + x * gap,
+            y: offsetY + y * gap,
+            seed: Math.sin(x * 12.9898 + y * 78.233) * 43758.5453
+          });
+        }
+      }
+    }
+
+    function drawMarker(text, x, y, align) {
+      ctx.save();
+      ctx.font = '500 10px "JetBrains Mono", ui-monospace, monospace';
+      ctx.textAlign = align || 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(242,242,242,0.34)';
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+
+    function paint(now) {
+      var time = now * 0.001;
+      var scanCenter = height * (0.5 + Math.sin(time * 0.42) * 0.34);
+      var activeX = pointerX + (targetX - pointerX) * 0.18;
+      var activeY = pointerY + (targetY - pointerY) * 0.18;
+      pointerX = activeX;
+      pointerY = activeY;
+
+      ctx.clearRect(0, 0, width, height);
+
+      points.forEach(function (point) {
+        var scanDistance = Math.abs(point.y - scanCenter);
+        var scanGlow = Math.max(0, 1 - scanDistance / 76);
+        var cursorDistance = pointerActive ? Math.hypot(point.x - activeX, point.y - activeY) : 9999;
+        var cursorGlow = Math.max(0, 1 - cursorDistance / 155);
+        var nearestBoost = cursorDistance < gap * 0.62 ? 1 : 0;
+        var alpha = 0.12 + scanGlow * 0.28 + cursorGlow * 0.52 + nearestBoost * 0.38;
+        var radius = 1.05 + scanGlow * 0.9 + cursorGlow * 2.2 + nearestBoost * 1.7;
+
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(242,242,242,' + Math.min(alpha, 0.96).toFixed(3) + ')';
+        ctx.shadowBlur = cursorGlow > 0 ? 18 * cursorGlow : 0;
+        ctx.shadowColor = 'rgba(242,242,242,' + (0.24 * cursorGlow).toFixed(3) + ')';
+        ctx.fill();
+      });
+
+      ctx.shadowBlur = 0;
+      var scan = ctx.createLinearGradient(0, scanCenter - 48, 0, scanCenter + 48);
+      scan.addColorStop(0, 'rgba(255,255,255,0)');
+      scan.addColorStop(0.5, 'rgba(255,255,255,0.34)');
+      scan.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = scan;
+      ctx.fillRect(0, scanCenter - 48, width, 96);
+
+      if (pointerActive) {
+        var aura = ctx.createRadialGradient(activeX, activeY, 0, activeX, activeY, 180);
+        aura.addColorStop(0, 'rgba(255,255,255,0.18)');
+        aura.addColorStop(0.26, 'rgba(255,255,255,0.06)');
+        aura.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = aura;
+        ctx.fillRect(activeX - 190, activeY - 190, 380, 380);
+      }
+
+      drawMarker('WRAP / FILM THICKNESS', width * 0.18, height * 0.22, 'left');
+      drawMarker('PPF / EDGE MAP', width * 0.82, height * 0.31, 'right');
+      drawMarker('CERAMIC / SURFACE ENERGY', width * 0.18, height * 0.76, 'left');
+      drawMarker('AURA SCAN ACTIVE', width * 0.82, height * 0.68, 'right');
+    }
+
+    function loop(now) {
+      paint(now || 0);
+      if (running) raf = requestAnimationFrame(loop);
+    }
+
+    function start() {
+      if (running) return;
+      running = true;
+      resize();
+      raf = requestAnimationFrame(loop);
+    }
+
+    function stop() {
+      running = false;
+      cancelAnimationFrame(raf);
+    }
+
+    window.addEventListener('resize', function () {
+      resize();
+      paint(performance.now());
+    }, { passive: true });
+
+    if (section) {
+      section.addEventListener('pointermove', function (event) {
+        var rect = section.getBoundingClientRect();
+        targetX = event.clientX - rect.left;
+        targetY = event.clientY - rect.top;
+        if (!pointerActive) {
+          pointerX = targetX;
+          pointerY = targetY;
+        }
+        pointerActive = true;
+      }, { passive: true });
+      section.addEventListener('pointerleave', function () {
+        pointerActive = false;
+      }, { passive: true });
+    }
+
+    resize();
+    paint(performance.now());
+    if (reduce) return;
+
+    var scannerIo = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) start();
+        else stop();
+      });
+    }, { threshold: 0.1 });
+    scannerIo.observe(section || canvas);
+  }
+  initSurfaceScanner();
+
+  // ---- Scroll reveals (reveal / reveal-left / reveal-right) ----
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.15 });
+  document
+    .querySelectorAll('.reveal, .reveal-left, .reveal-right')
+    .forEach(function (el) { io.observe(el); });
+})();
+</script>
+</body>
+</html>

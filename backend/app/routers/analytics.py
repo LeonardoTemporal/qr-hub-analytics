@@ -51,6 +51,201 @@ def _range_to_start(range_: TimeRange) -> datetime:
     return now - timedelta(days=30)
 
 
+def _campaign_filters(campaign_id: str | None) -> tuple:
+    if campaign_id and campaign_id.lower() != "all":
+        return (Scan.campaign_id == campaign_id,)
+    return ()
+
+
+def _campaign_label(campaign_id: str | None) -> str:
+    return campaign_id if campaign_id and campaign_id.lower() != "all" else "all"
+
+
+async def _build_kpis(session, campaign_id: str | None = None) -> dict:
+    filters = _campaign_filters(campaign_id)
+
+    total = (
+        await session.execute(select(func.count(Scan.id)).where(*filters))
+    ).scalar() or 0
+
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    recent = (
+        await session.execute(
+            select(func.count(Scan.id)).where(
+                *filters,
+                Scan.scanned_at >= seven_days_ago,
+            )
+        )
+    ).scalar() or 0
+
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    last_30 = (
+        await session.execute(
+            select(func.count(Scan.id)).where(
+                *filters,
+                Scan.scanned_at >= thirty_days_ago,
+            )
+        )
+    ).scalar() or 0
+
+    unique_devices = (
+        await session.execute(
+            select(func.count(distinct(Scan.device_type))).where(
+                *filters,
+                Scan.device_type.isnot(None),
+            )
+        )
+    ).scalar() or 0
+
+    unique_countries = (
+        await session.execute(
+            select(func.count(distinct(Scan.country))).where(
+                *filters,
+                Scan.country.isnot(None),
+            )
+        )
+    ).scalar() or 0
+
+    return {
+        "campaign_id": _campaign_label(campaign_id),
+        "total_scans": total,
+        "recent_scans_7d": recent,
+        "scans_30d": last_30,
+        "daily_avg": round(last_30 / 30, 2) if last_30 else 0,
+        "unique_devices": unique_devices,
+        "unique_countries": unique_countries,
+    }
+
+
+async def _name_value_rows(
+    session,
+    column,
+    campaign_id: str | None = None,
+    limit: int = 10,
+) -> list[dict[str, int | str]]:
+    rows = (
+        await session.execute(
+            select(column.label("name"), func.count(Scan.id).label("count"))
+            .where(
+                *_campaign_filters(campaign_id),
+                column.isnot(None),
+            )
+            .group_by(column)
+            .order_by(func.count(Scan.id).desc())
+            .limit(limit)
+        )
+    ).all()
+    return [{"name": row.name or "Unknown", "value": row.count} for row in rows]
+
+
+async def _build_distribution(session, campaign_id: str | None = None) -> dict:
+    return {
+        "campaign_id": _campaign_label(campaign_id),
+        "devices": await _name_value_rows(session, Scan.device_type, campaign_id),
+        "os": await _name_value_rows(session, Scan.os, campaign_id),
+        "browsers": await _name_value_rows(session, Scan.browser, campaign_id),
+    }
+
+
+async def _build_geo(session, campaign_id: str | None = None) -> dict:
+    cities = await _name_value_rows(session, Scan.city, campaign_id, limit=20)
+    return {
+        "campaign_id": _campaign_label(campaign_id),
+        "countries": await _name_value_rows(session, Scan.country, campaign_id),
+        "states": await _name_value_rows(session, Scan.state, campaign_id, limit=20),
+        "municipalities": cities,
+        "cities": cities,
+    }
+
+
+async def _build_timeline(
+    session,
+    campaign_id: str | None = None,
+    range_: TimeRange = "30d",
+) -> dict:
+    start = _range_to_start(range_)
+    bucket = "hour" if range_ == "hoy" else "day"
+
+    rows = (
+        await session.execute(
+            select(
+                func.date_trunc(bucket, Scan.scanned_at).label("date"),
+                func.count(Scan.id).label("count"),
+            )
+            .where(
+                *_campaign_filters(campaign_id),
+                Scan.scanned_at >= start,
+            )
+            .group_by("date")
+            .order_by("date")
+        )
+    ).all()
+    series = [{"date": row.date.isoformat(), "scans": row.count} for row in rows]
+
+    return {
+        "campaign_id": _campaign_label(campaign_id),
+        "range": range_,
+        "bucket": bucket,
+        "series": series,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Endpoints globales del dashboard Vite
+# ---------------------------------------------------------------------------
+@router.get(
+    "/analytics/kpis",
+    summary="KPIs globales del dashboard",
+    tags=["analytics"],
+)
+async def get_kpis(
+    _: Annotated[str, Depends(require_admin)],
+    campaign_id: str | None = Query(default=None),
+):
+    async with AsyncSessionLocal() as session:
+        return await _build_kpis(session, campaign_id)
+
+
+@router.get(
+    "/analytics/distribution",
+    summary="Distribucion global de dispositivos, OS y navegadores",
+    tags=["analytics"],
+)
+async def get_distribution_global(
+    _: Annotated[str, Depends(require_admin)],
+    campaign_id: str | None = Query(default=None),
+):
+    async with AsyncSessionLocal() as session:
+        return await _build_distribution(session, campaign_id)
+
+
+@router.get(
+    "/analytics/geo",
+    summary="Geografia global por pais, estado y municipio",
+    tags=["analytics"],
+)
+async def get_geo(
+    _: Annotated[str, Depends(require_admin)],
+    campaign_id: str | None = Query(default=None),
+):
+    async with AsyncSessionLocal() as session:
+        return await _build_geo(session, campaign_id)
+
+
+@router.get(
+    "/analytics/timeline",
+    summary="Serie temporal global de escaneos",
+    tags=["analytics"],
+)
+async def get_timeline_global(
+    _: Annotated[str, Depends(require_admin)],
+    campaign_id: str | None = Query(default=None),
+    range_: TimeRange = Query("30d", alias="range"),
+):
+    async with AsyncSessionLocal() as session:
+        return await _build_timeline(session, campaign_id, range_)
+
+
 # ---------------------------------------------------------------------------
 # /api/analytics/summary/{campaign_id}
 # ---------------------------------------------------------------------------
@@ -64,44 +259,7 @@ async def get_summary(
     _: Annotated[str, Depends(require_admin)],
 ):
     async with AsyncSessionLocal() as session:
-        total_q = select(func.count(Scan.id)).where(Scan.campaign_id == campaign_id)
-        total = (await session.execute(total_q)).scalar() or 0
-
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
-        recent_q = select(func.count(Scan.id)).where(
-            Scan.campaign_id == campaign_id,
-            Scan.scanned_at >= seven_days_ago,
-        )
-        recent = (await session.execute(recent_q)).scalar() or 0
-
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-        last_30_q = select(func.count(Scan.id)).where(
-            Scan.campaign_id == campaign_id,
-            Scan.scanned_at >= thirty_days_ago,
-        )
-        last_30 = (await session.execute(last_30_q)).scalar() or 0
-
-        unique_devices_q = select(
-            func.count(distinct(Scan.device_type))
-        ).where(Scan.campaign_id == campaign_id, Scan.device_type.isnot(None))
-        unique_devices = (await session.execute(unique_devices_q)).scalar() or 0
-
-        unique_countries_q = select(
-            func.count(distinct(Scan.country))
-        ).where(Scan.campaign_id == campaign_id, Scan.country.isnot(None))
-        unique_countries = (await session.execute(unique_countries_q)).scalar() or 0
-
-        daily_avg = round(last_30 / 30, 2) if last_30 else 0
-
-        return {
-            "campaign_id": campaign_id,
-            "total_scans": total,
-            "recent_scans_7d": recent,
-            "scans_30d": last_30,
-            "daily_avg": daily_avg,
-            "unique_devices": unique_devices,
-            "unique_countries": unique_countries,
-        }
+        return await _build_kpis(session, campaign_id)
 
 
 # ---------------------------------------------------------------------------
@@ -117,49 +275,7 @@ async def get_distribution(
     _: Annotated[str, Depends(require_admin)],
 ):
     async with AsyncSessionLocal() as session:
-        device_q = (
-            select(Scan.device_type, func.count(Scan.id).label("count"))
-            .where(Scan.campaign_id == campaign_id, Scan.device_type.isnot(None))
-            .group_by(Scan.device_type)
-            .order_by(func.count(Scan.id).desc())
-        )
-        device_rows = (await session.execute(device_q)).all()
-        devices = [
-            {"name": row.device_type or "Unknown", "value": row.count}
-            for row in device_rows
-        ]
-
-        os_q = (
-            select(Scan.os, func.count(Scan.id).label("count"))
-            .where(Scan.campaign_id == campaign_id, Scan.os.isnot(None))
-            .group_by(Scan.os)
-            .order_by(func.count(Scan.id).desc())
-            .limit(10)
-        )
-        os_rows = (await session.execute(os_q)).all()
-        os_list = [
-            {"name": row.os or "Unknown", "value": row.count} for row in os_rows
-        ]
-
-        browser_q = (
-            select(Scan.browser, func.count(Scan.id).label("count"))
-            .where(Scan.campaign_id == campaign_id, Scan.browser.isnot(None))
-            .group_by(Scan.browser)
-            .order_by(func.count(Scan.id).desc())
-            .limit(10)
-        )
-        browser_rows = (await session.execute(browser_q)).all()
-        browsers = [
-            {"name": row.browser or "Unknown", "value": row.count}
-            for row in browser_rows
-        ]
-
-        return {
-            "campaign_id": campaign_id,
-            "devices": devices,
-            "os": os_list,
-            "browsers": browsers,
-        }
+        return await _build_distribution(session, campaign_id)
 
 
 # ---------------------------------------------------------------------------
@@ -175,50 +291,7 @@ async def get_location(
     _: Annotated[str, Depends(require_admin)],
 ):
     async with AsyncSessionLocal() as session:
-        countries_q = (
-            select(Scan.country, func.count(Scan.id).label("count"))
-            .where(Scan.campaign_id == campaign_id, Scan.country.isnot(None))
-            .group_by(Scan.country)
-            .order_by(func.count(Scan.id).desc())
-            .limit(10)
-        )
-        countries_rows = (await session.execute(countries_q)).all()
-        countries = [
-            {"name": row.country or "Unknown", "value": row.count}
-            for row in countries_rows
-        ]
-
-        states_q = (
-            select(Scan.state, func.count(Scan.id).label("count"))
-            .where(Scan.campaign_id == campaign_id, Scan.state.isnot(None))
-            .group_by(Scan.state)
-            .order_by(func.count(Scan.id).desc())
-            .limit(20)
-        )
-        states_rows = (await session.execute(states_q)).all()
-        states = [
-            {"name": row.state or "Unknown", "value": row.count}
-            for row in states_rows
-        ]
-
-        cities_q = (
-            select(Scan.city, func.count(Scan.id).label("count"))
-            .where(Scan.campaign_id == campaign_id, Scan.city.isnot(None))
-            .group_by(Scan.city)
-            .order_by(func.count(Scan.id).desc())
-            .limit(20)
-        )
-        cities_rows = (await session.execute(cities_q)).all()
-        cities = [
-            {"name": row.city or "Unknown", "value": row.count} for row in cities_rows
-        ]
-
-        return {
-            "campaign_id": campaign_id,
-            "countries": countries,
-            "states": states,
-            "cities": cities,
-        }
+        return await _build_geo(session, campaign_id)
 
 
 # ---------------------------------------------------------------------------
@@ -234,35 +307,8 @@ async def get_timeline(
     _: Annotated[str, Depends(require_admin)],
     range_: TimeRange = Query("30d", alias="range"),
 ):
-    start = _range_to_start(range_)
-
-    # 'hoy' agrupa por hora; 7d / 30d agrupan por dia.
-    bucket = "hour" if range_ == "hoy" else "day"
-
     async with AsyncSessionLocal() as session:
-        q = (
-            select(
-                func.date_trunc(bucket, Scan.scanned_at).label("date"),
-                func.count(Scan.id).label("count"),
-            )
-            .where(
-                Scan.campaign_id == campaign_id,
-                Scan.scanned_at >= start,
-            )
-            .group_by("date")
-            .order_by("date")
-        )
-        rows = (await session.execute(q)).all()
-        series = [
-            {"date": row.date.isoformat(), "scans": row.count} for row in rows
-        ]
-
-        return {
-            "campaign_id": campaign_id,
-            "range": range_,
-            "bucket": bucket,
-            "series": series,
-        }
+        return await _build_timeline(session, campaign_id, range_)
 
 
 # ---------------------------------------------------------------------------

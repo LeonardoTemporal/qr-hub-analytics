@@ -19,7 +19,7 @@ from fastapi.responses import RedirectResponse
 from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models import Scan
-from app.services.geo_service import GeoLite2Service
+from app.services.geo_service import IPApiGeoService
 from app.services.ua_service import UserAgentService
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,10 @@ router = APIRouter()
 # Singletons de servicios – se inicializan una sola vez al importar el módulo
 # (Open/Closed: se pueden sustituir por otras implementaciones sin tocar el router)
 # ---------------------------------------------------------------------------
-_geo_service = GeoLite2Service(settings.GEOIP_DB_PATH)
+_geo_service = IPApiGeoService(
+    base_url=settings.GEOIP_API_URL,
+    timeout_seconds=settings.GEOIP_TIMEOUT_SECONDS,
+)
 _ua_service = UserAgentService()
 
 
@@ -55,6 +58,17 @@ def _get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _build_redirect_target(frontend_url: str, campaign_id: str | None = None) -> str:
+    if campaign_id:
+        tracked_destination = settings.tracking_destinations.get(
+            campaign_id.strip().lower()
+        )
+        if tracked_destination:
+            return tracked_destination
+
+    return f"{frontend_url.rstrip('/')}/enlaces"
+
+
 # ---------------------------------------------------------------------------
 # Background Task – procesamiento asíncrono post-respuesta
 # ---------------------------------------------------------------------------
@@ -72,7 +86,7 @@ async def _record_scan(
     afecte la experiencia del usuario final.
     """
     try:
-        geo = _geo_service.lookup(ip_address)
+        geo = await _geo_service.lookup(ip_address)
         device = _ua_service.parse(user_agent_string)
 
         scan = Scan(
@@ -110,10 +124,24 @@ async def _record_scan(
 # Endpoint principal
 # ---------------------------------------------------------------------------
 @router.get(
+    "/qr/{campaign_id}",
+    status_code=302,
+    summary="Redirección QR con tracking",
+    response_description="Redirección 302 al destino configurado",
+    tags=["redirect"],
+)
+@router.get(
+    "/t/{campaign_id}",
+    status_code=302,
+    summary="Redirección QR con tracking",
+    response_description="Redirección 302 al destino configurado",
+    tags=["redirect"],
+)
+@router.get(
     "/r/{campaign_id}",
     status_code=302,
     summary="Redirección QR con tracking",
-    response_description="Redirección 302 al frontend de la campaña",
+    response_description="Redirección 302 al destino configurado",
     tags=["redirect"],
 )
 async def redirect_campaign(
@@ -126,7 +154,7 @@ async def redirect_campaign(
 
     - Devuelve **302 redirect** de forma inmediata (latencia cero para el usuario).
     - Encola en segundo plano el registro de analíticas sin bloquear la respuesta.
-    - Siempre redirige a https://7fitment.com/enlaces (URL de producción).
+    - Redirige al destino configurado, sin pop-ups ni permisos de navegador.
     """
     ip_address = _get_client_ip(request)
     user_agent_string = request.headers.get("User-Agent", "")
@@ -138,6 +166,5 @@ async def redirect_campaign(
         user_agent_string=user_agent_string,
     )
 
-    # Siempre redirigimos a la URL de producción
-    target_url = "https://7fitment.com/enlaces"
+    target_url = _build_redirect_target(settings.FRONTEND_URL, campaign_id)
     return RedirectResponse(url=target_url, status_code=302)

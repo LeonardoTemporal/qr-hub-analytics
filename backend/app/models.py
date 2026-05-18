@@ -14,9 +14,9 @@ class Scan(Base):
     Campos:
         id           – PK autoincremental.
         campaign_id  – Identificador del QR / campaña (slug).
-        country      – País resuelto vía GeoLite2.
-        state        – Estado / subdivisión (ej. "Jalisco", "CDMX") vía GeoLite2 subdivisions.
-        city         – Ciudad / municipio resuelto vía GeoLite2.
+        country      – Pais resuelto por geolocalizacion IP.
+        state        – Estado / subdivision (ej. "Jalisco", "CDMX").
+        city         – Ciudad / municipio resuelto por geolocalizacion IP.
         device_type  – mobile | tablet | desktop | other.
         os           – Sistema operativo extraído del User-Agent.
         browser      – Navegador extraído del User-Agent.

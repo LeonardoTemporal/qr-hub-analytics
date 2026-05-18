@@ -107,7 +107,27 @@ coverage/
 *.orig
 
 # -----------------------------------------------------------------------------
+# Local analysis artifacts
+# -----------------------------------------------------------------------------
+.graphify_*
+graphify-out/
+*.analysis.md
+*_REPORT.md
+.local-reports/
+.playwright-mcp/
+
+# -----------------------------------------------------------------------------
 # Vite (in case it appears in subprojects)
 # -----------------------------------------------------------------------------
 .vite/
 vite.config.*.timestamp-*
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# -----------------------------------------------------------------------------
+# Local migration/reference folders
+# -----------------------------------------------------------------------------
+frontend/frontend/
+frontend/uploads/
+frontend/assets/

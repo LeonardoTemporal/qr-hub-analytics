@@ -1,7 +1,7 @@
 # =============================================================================
 # QR-Hub Analytics - Docker Compose Orchestration
 # =============================================================================
-# Stack: PostgreSQL 15 | FastAPI | Next.js 16 (standalone) | Metabase
+# Stack: PostgreSQL 15 | FastAPI | Vite/React (Nginx) | Metabase
 #
 # Usage:
 #   cp .env.example .env           # fill in all required variables
@@ -51,11 +51,10 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       FRONTEND_URL: ${FRONTEND_URL}
-      GEOIP_DB_PATH: /app/data/GeoLite2-City.mmdb
-    volumes:
-      # Mount directory containing GeoLite2-City.mmdb
-      - ${DATA_PATH:-./backend/data}:/app/data
-      # Download from: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
+      GEOIP_API_URL: ${GEOIP_API_URL:-http://ip-api.com/json}
+      GEOIP_TIMEOUT_SECONDS: ${GEOIP_TIMEOUT_SECONDS:-1.5}
+      TRACKING_WHATSAPP_URL: ${TRACKING_WHATSAPP_URL:-https://wa.me/5215637940104?text=Hola%207Fitment%2C%20quiero%20cotizar%20un%20proyecto%20para%20mi%20auto}
+      TRACKING_INSTAGRAM_URL: ${TRACKING_INSTAGRAM_URL:-https://www.instagram.com/7fitment/}
     # ports:
       # - "8000:8000"
     networks:
@@ -64,25 +63,29 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    labels:
+      - traefik.docker.network=dokploy-network
+      - traefik.enable=true
+      - "traefik.http.routers.qrhub-backend.rule=(Host(`7fitment.com`) || Host(`admin.7fitment.com`)) && (PathPrefix(`/api`) || PathPrefix(`/t`) || PathPrefix(`/r`) || PathPrefix(`/qr`))"
+      - traefik.http.routers.qrhub-backend.entrypoints=web
+      - traefik.http.routers.qrhub-backend.priority=100
+      - traefik.http.routers.qrhub-backend.service=qrhub-backend
+      - traefik.http.services.qrhub-backend.loadbalancer.server.port=8000
 
   # ---------------------------------------------------------------------------
-  # frontend - Next.js 16 (output: standalone)
-  # Serves the Linktree-style landing pages for each campaign.
-  # The NEXT_PUBLIC_API_URL variable must point to the publicly reachable
-  # backend URL (e.g. https://api.yourdomain.com) so QR links resolve correctly.
+  # frontend - Vite + React + Tailwind CSS v4, served by Nginx on port 3000.
+  # VITE_API_URL must point to the publicly reachable backend URL.
   # ---------------------------------------------------------------------------
   qrhub_frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_GA4_ID:  ${NEXT_PUBLIC_GA4_ID}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_DEFAULT_CAMPAIGN_ID: ${VITE_DEFAULT_CAMPAIGN_ID:-7fitment}
     container_name: qrhub_frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-      NEXT_PUBLIC_GA4_ID:  ${NEXT_PUBLIC_GA4_ID}
       NODE_ENV: production
    # ports:
     #  - "3000:3000"

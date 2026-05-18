@@ -38,14 +38,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-        # Migración idempotente: añadir columna `state` si no existe.
+        # Migracion idempotente: columnas geo usadas por el dashboard.
         # Postgres soporta ADD COLUMN IF NOT EXISTS desde la 9.6.
-        await conn.execute(
-            text(
-                "ALTER TABLE scans "
-                "ADD COLUMN IF NOT EXISTS state VARCHAR(100)"
+        for column in ("country", "state", "city"):
+            await conn.execute(
+                text(
+                    "ALTER TABLE scans "
+                    f"ADD COLUMN IF NOT EXISTS {column} VARCHAR(100)"
+                )
             )
-        )
     logger.info("Database schema verified / created.")
 
     yield  # ← la app está en ejecución
@@ -69,15 +70,10 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# CORS – permitimos frontend local y producción
+# CORS – frontend local (Vite/preview) y producción
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://7fitment.com",
-        "https://www.7fitment.com",
-        "https://admin.7fitment.com",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "HEAD", "OPTIONS"],
     allow_headers=["*"],

@@ -1,90 +1,112 @@
 """
-Servicio de geolocalización basado en MaxMind GeoLite2.
+Servicio de geolocalizacion IP para analiticas de QR.
 
-Principio de responsabilidad única (S): este módulo se ocupa
-exclusivamente de traducir una IP a ubicación geográfica.
-
-El uso de un Protocol (IGeoService) cumple con el principio
-de inversión de dependencias (D): el router depende de la
-abstracción, no de la implementación concreta.
+Traduce la IP publica del escaneo a pais, estado y municipio/ciudad mediante
+ip-api.com. El servicio esta disenado para degradar siempre a "Unknown" si la
+consulta externa falla o excede el timeout.
 """
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 from dataclasses import dataclass
-from typing import Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
+UNKNOWN_LOCATION = "Unknown"
 
-# ---------------------------------------------------------------------------
-# Value Object
-# ---------------------------------------------------------------------------
+
 @dataclass(frozen=True, slots=True)
 class GeoLocation:
-    country: Optional[str] = None
-    state: Optional[str] = None
-    city: Optional[str] = None
+    country: str = UNKNOWN_LOCATION
+    state: str = UNKNOWN_LOCATION
+    city: str = UNKNOWN_LOCATION
 
 
-# ---------------------------------------------------------------------------
-# Abstraction (I / D – SOLID)
-# ---------------------------------------------------------------------------
 @runtime_checkable
 class IGeoService(Protocol):
-    def lookup(self, ip_address: str) -> GeoLocation: ...
+    async def lookup(self, ip_address: str) -> GeoLocation: ...
 
 
-# ---------------------------------------------------------------------------
-# Concrete implementation – GeoLite2 (MaxMind)
-# ---------------------------------------------------------------------------
-class GeoLite2Service:
+def _normalise_ip(ip_address: str) -> str:
+    ip_address = (ip_address or "").strip()
+    if ip_address.startswith("[") and "]" in ip_address:
+        return ip_address[1 : ip_address.index("]")]
+    if ip_address.count(":") == 1 and "." in ip_address:
+        return ip_address.rsplit(":", 1)[0]
+    return ip_address
+
+
+def _is_public_ip(ip_address: str) -> bool:
+    try:
+        parsed = ipaddress.ip_address(ip_address)
+    except ValueError:
+        return False
+    return parsed.is_global
+
+
+def _clean_location(value: Any) -> str:
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return UNKNOWN_LOCATION
+
+
+class IPApiGeoService:
     """
-    Resuelve IPs a ubicaciones usando la base de datos GeoLite2-City.mmdb.
+    Resuelve IPs publicas usando http://ip-api.com/json/{ip}.
 
-    Si la base de datos no está disponible (p.ej. primer deploy sin el .mmdb),
-    el servicio degrada de forma silenciosa y devuelve valores nulos, de modo
-    que el flujo de redirección nunca se interrumpa.
-
-    Descarga la DB desde: https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
-    Monta el archivo .mmdb en /app/GeoLite2-City.mmdb dentro del contenedor.
+    El timeout por defecto es 1.5s para proteger la velocidad percibida del
+    redirect. IPs privadas/locales devuelven Unknown sin hacer llamada externa.
     """
 
-    def __init__(self, db_path: str) -> None:
-        self._reader = None
-        try:
-            import geoip2.database  # lazy import – no falla si no está instalado
+    def __init__(
+        self,
+        base_url: str = "http://ip-api.com/json",
+        timeout_seconds: float = 1.5,
+    ) -> None:
+        self._base_url = base_url.rstrip("/")
+        self._timeout_seconds = timeout_seconds
 
-            self._reader = geoip2.database.Reader(db_path)
-            logger.info("GeoLite2 database loaded from '%s'.", db_path)
-        except Exception as exc:
-            logger.warning(
-                "GeoIP database unavailable at '%s': %s. "
-                "Country/city will be stored as NULL.",
-                db_path,
-                exc,
-            )
-
-    def lookup(self, ip_address: str) -> GeoLocation:
-        if not self._reader:
+    async def lookup(self, ip_address: str) -> GeoLocation:
+        ip_address = _normalise_ip(ip_address)
+        if not ip_address or not _is_public_ip(ip_address):
             return GeoLocation()
+
         try:
-            response = self._reader.city(ip_address)
-
-            # MaxMind devuelve subdivisions con jerarquía (estado → municipio).
-            # En México: subdivisions[0] = estado (ej. "Jalisco", "Ciudad de México").
-            # response.city.name suele ser el municipio / ciudad principal.
-            state_name: Optional[str] = None
-            if response.subdivisions:
-                most_specific = response.subdivisions.most_specific
-                state_name = most_specific.name or None
-
-            return GeoLocation(
-                country=response.country.name or None,
-                state=state_name,
-                city=response.city.name or None,
-            )
-        except Exception as exc:
-            logger.debug("GeoIP lookup failed for '%s': %s", ip_address, exc)
+            async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
+                response = await client.get(
+                    f"{self._base_url}/{ip_address}",
+                    params={
+                        "fields": "status,country,regionName,city,message",
+                    },
+                )
+            response.raise_for_status()
+            payload = response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.debug("IP geolocation failed for %r: %s", ip_address, exc)
             return GeoLocation()
+
+        if payload.get("status") != "success":
+            logger.debug(
+                "IP geolocation returned non-success for %r: %r",
+                ip_address,
+                payload.get("message"),
+            )
+            return GeoLocation()
+
+        return GeoLocation(
+            country=_clean_location(payload.get("country")),
+            state=_clean_location(payload.get("regionName")),
+            city=_clean_location(payload.get("city")),
+        )
+
+
+class GeoLite2Service(IPApiGeoService):
+    """Compatibilidad con imports antiguos que pasaban una ruta .mmdb."""
+
+    def __init__(self, _db_path: str | None = None) -> None:
+        super().__init__()

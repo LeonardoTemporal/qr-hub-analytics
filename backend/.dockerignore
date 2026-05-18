@@ -5,7 +5,7 @@
 .env
 .env.*
 
-# GeoIP database -- injected at runtime via Docker volume, not baked into image
+# Local geolocation data, if present, is never baked into the image.
 data/
 *.mmdb
 

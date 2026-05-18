@@ -24,9 +24,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 # ── Application source ────────────────────────────────────────────────────────
 COPY --chown=appuser:appgroup . .
 
-# GeoLite2-City.mmdb is injected at runtime via the Docker volume defined in
-# docker-compose.yml (./backend/data:/app/data:ro). The service starts
-# normally if the file is absent -- analytics fields degrade to NULL.
+# IP geolocation is resolved by the backend through the configured HTTP
+# provider. Timeouts degrade to Unknown without interrupting redirects.
 
 USER appuser
 
