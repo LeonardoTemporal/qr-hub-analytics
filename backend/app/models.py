@@ -30,10 +30,14 @@ class Scan(Base):
     campaign_id: Mapped[str] = mapped_column(
         String(100), nullable=False, index=True
     )
+    scan_token: Mapped[Optional[str]] = mapped_column(
+        String(120), nullable=True, unique=True, index=True
+    )
 
     country: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     state: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     city: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    geo_source: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
 
     device_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     os: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)

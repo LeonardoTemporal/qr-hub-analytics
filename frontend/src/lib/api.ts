@@ -55,6 +55,13 @@ export interface CampaignOption {
   description: string;
 }
 
+export interface BrowserLocationPayload {
+  scan_token: string;
+  country?: string;
+  state?: string;
+  city?: string;
+}
+
 const AUTH_KEY = "7fitment_dashboard_basic_auth";
 const AUTH_FLAG = "7fitment_dashboard_session";
 const LOCAL_DASHBOARD_PASSWORD = "7fitment2026";
@@ -161,4 +168,19 @@ export async function fetchAnalytics(
   ]);
 
   return { kpis, distribution, geo, timeline };
+}
+
+export async function submitBrowserLocation(
+  payload: BrowserLocationPayload,
+): Promise<void> {
+  const response = await fetch(apiUrl("/api/analytics/browser-location"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    keepalive: true,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
 }

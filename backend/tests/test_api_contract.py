@@ -11,6 +11,7 @@ def test_required_routes_are_registered() -> None:
     assert "/r/{campaign_id}" in paths
     assert "/t/{campaign_id}" in paths
     assert "/qr/{campaign_id}" in paths
+    assert "/api/analytics/browser-location" in paths
     assert "/api/auth/session" in paths
     assert "/api/analytics/kpis" in paths
     assert "/api/analytics/distribution" in paths
@@ -33,6 +34,11 @@ def test_redirect_target_uses_frontend_enlaces_without_double_slashes() -> None:
     assert _build_redirect_target("https://7fitment.com", "qr_general") == (
         "https://7fitment.com/enlaces"
     )
+    assert _build_redirect_target(
+        "https://7fitment.com",
+        "qr_general",
+        "scan-token-123",
+    ) == "https://7fitment.com/enlaces?scan=scan-token-123"
 
 
 def test_web_tracking_campaigns_redirect_to_social_destinations() -> None:
@@ -112,7 +118,7 @@ def test_qr_general_tracking_endpoint_enqueues_analytics(monkeypatch) -> None:
     )
 
     assert response.status_code == 302
-    assert response.headers["location"] == "https://7fitment.com/enlaces"
+    assert response.headers["location"].startswith("https://7fitment.com/enlaces?scan=")
     assert len(background_tasks.tasks) == 1
 
 

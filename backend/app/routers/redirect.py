@@ -11,10 +11,16 @@ Flujo:
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import secrets
+from typing import Any
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, Field
+from sqlalchemy import select
 
 from app.config import settings
 from app.database import AsyncSessionLocal
@@ -34,6 +40,13 @@ _geo_service = IPApiGeoService(
     timeout_seconds=settings.GEOIP_TIMEOUT_SECONDS,
 )
 _ua_service = UserAgentService()
+
+
+class BrowserLocationPayload(BaseModel):
+    scan_token: str = Field(min_length=16, max_length=120)
+    country: str | None = Field(default=None, max_length=100)
+    state: str | None = Field(default=None, max_length=100)
+    city: str | None = Field(default=None, max_length=100)
 
 
 # ---------------------------------------------------------------------------
@@ -62,7 +75,11 @@ def _get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-def _build_redirect_target(frontend_url: str, campaign_id: str | None = None) -> str:
+def _build_redirect_target(
+    frontend_url: str,
+    campaign_id: str | None = None,
+    scan_token: str | None = None,
+) -> str:
     if campaign_id:
         tracked_destination = settings.tracking_destinations.get(
             campaign_id.strip().lower()
@@ -70,7 +87,10 @@ def _build_redirect_target(frontend_url: str, campaign_id: str | None = None) ->
         if tracked_destination:
             return tracked_destination
 
-    return f"{frontend_url.rstrip('/')}/enlaces"
+    target = f"{frontend_url.rstrip('/')}/enlaces"
+    if scan_token:
+        return f"{target}?{urlencode({'scan': scan_token})}"
+    return target
 
 
 def _should_record_analytics(campaign_id: str) -> bool:
@@ -84,6 +104,7 @@ async def _record_scan(
     campaign_id: str,
     ip_address: str,
     user_agent_string: str,
+    scan_token: str | None = None,
 ) -> None:
     """
     Procesa analíticas y persiste el registro en PostgreSQL.
@@ -99,9 +120,11 @@ async def _record_scan(
 
         scan = Scan(
             campaign_id=campaign_id,
+            scan_token=scan_token,
             country=geo.country,
             state=geo.state,
             city=geo.city,
+            geo_source="ip",
             device_type=device.device_type,
             os=device.os,
             browser=device.browser,
@@ -126,6 +149,39 @@ async def _record_scan(
             exc,
             exc_info=True,
         )
+
+
+def _clean_location_value(value: str | None) -> str | None:
+    if not value:
+        return None
+    value = value.strip()
+    return value[:100] if value else None
+
+
+async def _apply_browser_location(payload: BrowserLocationPayload) -> bool:
+    for _ in range(10):
+        async with AsyncSessionLocal() as session:
+            scan = (
+                await session.execute(
+                    select(Scan).where(Scan.scan_token == payload.scan_token)
+                )
+            ).scalar_one_or_none()
+            if scan:
+                scan.country = _clean_location_value(payload.country) or scan.country
+                scan.state = _clean_location_value(payload.state) or scan.state
+                scan.city = _clean_location_value(payload.city) or scan.city
+                scan.geo_source = "browser"
+                await session.commit()
+                logger.info(
+                    "Browser location applied: campaign=%r country=%r state=%r city=%r",
+                    scan.campaign_id,
+                    scan.country,
+                    scan.state,
+                    scan.city,
+                )
+                return True
+        await asyncio.sleep(0.2)
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -166,6 +222,7 @@ async def redirect_campaign(
     """
     ip_address = _get_client_ip(request)
     user_agent_string = request.headers.get("User-Agent", "")
+    scan_token = secrets.token_urlsafe(32) if _should_record_analytics(campaign_id) else None
     logger.info(
         "Tracking request received: campaign=%r detected_ip=%r",
         campaign_id,
@@ -178,7 +235,20 @@ async def redirect_campaign(
             campaign_id=campaign_id,
             ip_address=ip_address,
             user_agent_string=user_agent_string,
+            scan_token=scan_token,
         )
 
-    target_url = _build_redirect_target(settings.FRONTEND_URL, campaign_id)
+    target_url = _build_redirect_target(settings.FRONTEND_URL, campaign_id, scan_token)
     return RedirectResponse(url=target_url, status_code=302)
+
+
+@router.post(
+    "/api/analytics/browser-location",
+    summary="Actualiza ubicación precisa otorgada por el navegador",
+    tags=["analytics"],
+)
+async def update_browser_location(
+    payload: BrowserLocationPayload,
+) -> dict[str, Any]:
+    updated = await _apply_browser_location(payload)
+    return {"success": True, "updated": updated}

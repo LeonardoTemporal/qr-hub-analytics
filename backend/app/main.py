@@ -47,6 +47,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                     f"ADD COLUMN IF NOT EXISTS {column} VARCHAR(100)"
                 )
             )
+        await conn.execute(
+            text("ALTER TABLE scans ADD COLUMN IF NOT EXISTS geo_source VARCHAR(40)")
+        )
+        await conn.execute(
+            text("ALTER TABLE scans ADD COLUMN IF NOT EXISTS scan_token VARCHAR(120)")
+        )
+        await conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS "
+                "ix_scans_scan_token ON scans (scan_token)"
+            )
+        )
     logger.info("Database schema verified / created.")
 
     yield  # ← la app está en ejecución

@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
+import LocationSoftPrompt from "../components/LocationSoftPrompt";
 import { contactLinks } from "../data/links";
 
 export default function EnlacesPage() {
@@ -65,6 +66,7 @@ export default function EnlacesPage() {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-white/10"
         aria-hidden="true"
       />
+      <LocationSoftPrompt />
 
       <a
         href="/"
