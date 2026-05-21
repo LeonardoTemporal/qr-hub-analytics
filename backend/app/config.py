@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     # Nunca exponer estos valores al frontend.
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "7fitment2026"
+    PORTAL_TOKEN_SECRET: str | None = None
+    PORTAL_TOKEN_TTL_SECONDS: int = 1800
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

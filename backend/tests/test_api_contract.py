@@ -17,6 +17,9 @@ def test_required_routes_are_registered() -> None:
     assert "/api/analytics/distribution" in paths
     assert "/api/analytics/geo" in paths
     assert "/api/analytics/timeline" in paths
+    assert "/api/garage/showcase/{slug_or_id}" in paths
+    assert "/api/garage/portal/auth" in paths
+    assert "/api/garage/portal/data" in paths
 
 
 def test_redirect_target_uses_frontend_enlaces_without_double_slashes() -> None:
@@ -248,3 +251,19 @@ def test_ip_api_geo_service_skips_private_ips(monkeypatch) -> None:
     assert geo.country == "Unknown"
     assert geo.state == "Unknown"
     assert geo.city == "Unknown"
+
+
+def test_portal_pin_hash_verifies_successfully() -> None:
+    from app.security import hash_pin, verify_pin
+
+    stored_hash = hash_pin("7F-2026")
+
+    assert verify_pin("7F-2026", stored_hash) is True
+
+
+def test_portal_pin_hash_rejects_wrong_pin() -> None:
+    from app.security import hash_pin, verify_pin
+
+    stored_hash = hash_pin("7F-2026")
+
+    assert verify_pin("0000", stored_hash) is False

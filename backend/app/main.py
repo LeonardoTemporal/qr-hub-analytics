@@ -14,7 +14,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.database import Base, engine
-from app.routers import analytics, auth, redirect
+from app.routers import analytics, auth, garage, redirect
 
 logging.basicConfig(
     level=logging.INFO,
@@ -97,6 +97,7 @@ app.add_middleware(
 app.include_router(redirect.router)
 app.include_router(analytics.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
+app.include_router(garage.router, prefix="/api")
 
 
 # ---------------------------------------------------------------------------
