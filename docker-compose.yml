@@ -86,7 +86,8 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
-        VITE_DEFAULT_CAMPAIGN_ID: ${VITE_DEFAULT_CAMPAIGN_ID:-7fitment}
+        VITE_DEFAULT_CAMPAIGN_ID: ${VITE_DEFAULT_CAMPAIGN_ID:-qr_general}
+        VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-https://7fitment.com}
     container_name: qrhub_frontend
     restart: unless-stopped
     environment:

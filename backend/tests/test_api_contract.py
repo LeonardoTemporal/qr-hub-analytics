@@ -30,6 +30,9 @@ def test_redirect_target_uses_frontend_enlaces_without_double_slashes() -> None:
     assert _build_redirect_target("https://7fitment.com", "qr_print_satellite") == (
         "https://7fitment.com/enlaces"
     )
+    assert _build_redirect_target("https://7fitment.com", "qr_general") == (
+        "https://7fitment.com/enlaces"
+    )
 
 
 def test_web_tracking_campaigns_redirect_to_social_destinations() -> None:

@@ -49,12 +49,43 @@ export interface AnalyticsBundle {
   timeline: TimelineResponse;
 }
 
+export interface CampaignOption {
+  label: string;
+  value: string;
+  description: string;
+}
+
 const AUTH_KEY = "7fitment_dashboard_basic_auth";
 const AUTH_FLAG = "7fitment_dashboard_session";
 const LOCAL_DASHBOARD_PASSWORD = "7fitment2026";
 const API_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+export const PUBLIC_SITE_URL =
+  (import.meta.env.VITE_PUBLIC_SITE_URL ?? "https://7fitment.com").replace(/\/$/, "");
 export const DEFAULT_CAMPAIGN_ID =
-  import.meta.env.VITE_DEFAULT_CAMPAIGN_ID || "7fitment";
+  import.meta.env.VITE_DEFAULT_CAMPAIGN_ID || "qr_general";
+export const QR_GENERAL_TRACKING_URL = `${PUBLIC_SITE_URL}/t/qr_general`;
+export const CAMPAIGN_OPTIONS: CampaignOption[] = [
+  {
+    label: "QR general",
+    value: "qr_general",
+    description: "Escaneos del QR impreso que redirige a /enlaces.",
+  },
+  {
+    label: "Todas",
+    value: "all",
+    description: "Vista consolidada de todas las campañas.",
+  },
+  {
+    label: "WhatsApp",
+    value: "web_whatsapp",
+    description: "Clicks que pasan por tracking antes de WhatsApp.",
+  },
+  {
+    label: "Instagram",
+    value: "web_instagram",
+    description: "Clicks que pasan por tracking antes de Instagram.",
+  },
+];
 
 function apiUrl(path: string): string {
   return API_URL ? `${API_URL}${path}` : path;

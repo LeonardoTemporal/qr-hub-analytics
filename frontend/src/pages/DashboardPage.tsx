@@ -42,8 +42,11 @@ import {
 } from "recharts";
 import {
   clearSession,
+  CAMPAIGN_OPTIONS,
+  DEFAULT_CAMPAIGN_ID,
   fetchAnalytics,
   login,
+  QR_GENERAL_TRACKING_URL,
   validateSession,
   type AnalyticsBundle,
   type NameValue,
@@ -231,10 +234,11 @@ function LocationList({
   );
 }
 
-function exportCsv(bundle: AnalyticsBundle): void {
+function exportCsv(bundle: AnalyticsBundle, campaignId: string): void {
   const rows = [
     ["7Fitment Analytics"],
     ["Generado", new Date().toISOString()],
+    ["Campana", campaignId],
     ["Total", String(bundle.kpis.total_scans)],
     ["Ultimos 7 dias", String(bundle.kpis.recent_scans_7d)],
     ["Promedio diario", String(bundle.kpis.daily_avg)],
@@ -377,6 +381,7 @@ export default function DashboardPage() {
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [range, setRange] = useState<TimeRange>("30d");
+  const [campaignId, setCampaignId] = useState(DEFAULT_CAMPAIGN_ID);
   const [bundle, setBundle] = useState<AnalyticsBundle | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -395,14 +400,14 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const next = await fetchAnalytics(range);
+      const next = await fetchAnalytics(range, campaignId);
       setBundle(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error cargando analiticas");
     } finally {
       setLoading(false);
     }
-  }, [range]);
+  }, [campaignId, range]);
 
   useEffect(() => {
     if (authenticated) void load();
@@ -425,7 +430,7 @@ export default function DashboardPage() {
     }, dashboardRef);
 
     return () => ctx.revert();
-  }, [bundle, range]);
+  }, [bundle, campaignId, range]);
 
   const topMunicipalities = useMemo(
     () => bundle?.geo.municipalities ?? bundle?.geo.cities ?? [],
@@ -485,6 +490,9 @@ export default function DashboardPage() {
             <h2 className="max-w-3xl text-[clamp(2.5rem,7vw,5.7rem)] font-light leading-none tracking-[-0.07em]">
               Lectura clara de cada escaneo QR.
             </h2>
+            <p className="mt-5 max-w-2xl text-[13px] leading-6 text-[#7f7f7f]">
+              QR de prueba listo: <span className="font-medium text-[#d8d8d8]">{QR_GENERAL_TRACKING_URL}</span>
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -510,13 +518,45 @@ export default function DashboardPage() {
             </span>
             <button
               type="button"
-              onClick={() => bundle && exportCsv(bundle)}
+              onClick={() => bundle && exportCsv(bundle, campaignId)}
               disabled={!bundle}
               className="focus-ring inline-flex h-11 items-center gap-2 rounded-[4px] bg-[#f2f2f2] px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-black disabled:opacity-45"
             >
               <Download size={14} />
               CSV
             </button>
+          </div>
+        </section>
+
+        <section className="dash-reveal mb-8 rounded-[6px] border border-white/[0.07] bg-white/[0.03] p-4 sm:p-5">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-[#707070]">
+                Campana activa
+              </p>
+              <h3 className="mt-1 text-[18px] font-medium tracking-[-0.04em] text-[#f2f2f2]">
+                {CAMPAIGN_OPTIONS.find((item) => item.value === campaignId)?.label ?? campaignId}
+              </h3>
+            </div>
+            <p className="max-w-xl text-[12px] leading-5 text-[#707070]">
+              {CAMPAIGN_OPTIONS.find((item) => item.value === campaignId)?.description}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {CAMPAIGN_OPTIONS.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setCampaignId(item.value)}
+                className={`focus-ring h-10 rounded-[4px] border px-4 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors ${
+                  campaignId === item.value
+                    ? "border-[#f2f2f2] bg-[#f2f2f2] text-black"
+                    : "border-white/[0.08] bg-black/20 text-[#8a8a8a] hover:border-white/[0.14] hover:text-[#f2f2f2]"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
         </section>
 
