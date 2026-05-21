@@ -70,7 +70,7 @@ def _build_redirect_target(frontend_url: str, campaign_id: str | None = None) ->
 
 
 def _should_record_analytics(campaign_id: str) -> bool:
-    return campaign_id.strip().lower() in settings.TRACKING_ANALYTICS_CAMPAIGNS
+    return campaign_id.strip().lower() in settings.tracking_analytics_campaigns
 
 
 # ---------------------------------------------------------------------------

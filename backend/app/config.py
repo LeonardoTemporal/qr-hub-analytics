@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     GEOIP_API_URL: str = "http://ip-api.com/json"
     GEOIP_TIMEOUT_SECONDS: float = 1.5
     DEFAULT_CAMPAIGN_ID: str = "7fitment"
-    TRACKING_ANALYTICS_CAMPAIGNS: list[str] = ["qr_general"]
+    TRACKING_ANALYTICS_CAMPAIGNS: str = "qr_general"
     TRACKING_WHATSAPP_URL: str = (
         "https://wa.me/5215637940104"
         "?text=Hola%207Fitment%2C%20quiero%20cotizar%20un%20proyecto%20para%20mi%20auto"
@@ -44,16 +44,17 @@ class Settings(BaseSettings):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
 
-    @field_validator("TRACKING_ANALYTICS_CAMPAIGNS", mode="before")
-    @classmethod
-    def parse_tracking_campaigns(cls, value: str | list[str]) -> list[str]:
-        if isinstance(value, str):
-            return [campaign.strip().lower() for campaign in value.split(",") if campaign.strip()]
-        return [campaign.strip().lower() for campaign in value]
-
     @property
     def enlaces_url(self) -> str:
         return f"{self.FRONTEND_URL.rstrip('/')}/enlaces"
+
+    @property
+    def tracking_analytics_campaigns(self) -> set[str]:
+        return {
+            campaign.strip().lower()
+            for campaign in self.TRACKING_ANALYTICS_CAMPAIGNS.split(",")
+            if campaign.strip()
+        }
 
     @property
     def tracking_destinations(self) -> dict[str, str]:
