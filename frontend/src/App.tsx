@@ -2,7 +2,10 @@ import { lazy, Suspense, useEffect, useState } from "react";
 
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const EnlacesPage = lazy(() => import("./pages/EnlacesPage"));
+const GarageDashboard = lazy(() => import("./pages/GarageDashboard"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const PortalAuth = lazy(() => import("./pages/PortalAuth"));
+const ShowcasePage = lazy(() => import("./pages/ShowcasePage"));
 
 function currentPath(): string {
   return window.location.pathname.replace(/\/+$/, "") || "/";
@@ -14,6 +17,7 @@ function shouldBypassClientRouter(href: string): boolean {
 
 export default function App() {
   const [path, setPath] = useState(currentPath);
+  const autoSlug = path.startsWith("/auto/") ? decodeURIComponent(path.slice(6)) : null;
 
   useEffect(() => {
     const onPopState = () => setPath(currentPath());
@@ -51,7 +55,15 @@ export default function App() {
     <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-bg-base text-text-muted">7FITMENT</div>}>
       {path === "/enlaces" || path.startsWith("/enlaces/") ? <EnlacesPage /> : null}
       {path === "/dashboard" ? <DashboardPage /> : null}
-      {path !== "/dashboard" && path !== "/enlaces" && !path.startsWith("/enlaces/") ? <LandingPage /> : null}
+      {autoSlug ? <ShowcasePage slug={autoSlug} /> : null}
+      {path === "/portal" ? <PortalAuth /> : null}
+      {path === "/portal/garage" ? <GarageDashboard /> : null}
+      {path !== "/dashboard" &&
+      path !== "/enlaces" &&
+      !path.startsWith("/enlaces/") &&
+      !path.startsWith("/auto/") &&
+      path !== "/portal" &&
+      path !== "/portal/garage" ? <LandingPage /> : null}
     </Suspense>
   );
 }

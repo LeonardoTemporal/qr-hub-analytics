@@ -62,8 +62,82 @@ export interface BrowserLocationPayload {
   city?: string;
 }
 
+export interface ShowcaseMedia {
+  media_url: string;
+  media_type: string;
+  caption?: string | null;
+  sort_order: number;
+}
+
+export interface ShowcaseService {
+  service_type: string;
+  media: ShowcaseMedia[];
+}
+
+export interface ShowcaseResponse {
+  vehicle: {
+    brand: string;
+    model: string;
+    year?: number | null;
+  };
+  services: ShowcaseService[];
+}
+
+export interface PortalAuthResponse {
+  access_token: string;
+  token_type: "bearer";
+  expires_in: number;
+  vehicle_id: number;
+}
+
+export interface PortalMedia {
+  id: number;
+  media_url: string;
+  media_type: string;
+  caption?: string | null;
+  sort_order: number;
+  is_public: boolean;
+}
+
+export interface PortalServiceRecord {
+  id: number;
+  service_type: string;
+  title?: string | null;
+  installed_at: string;
+  warranty_expires_at?: string | null;
+  washing_recommendations?: string | null;
+  care_instructions?: string | null;
+  internal_notes?: string | null;
+  is_public: boolean;
+  media: PortalMedia[];
+}
+
+export interface PortalDataResponse {
+  client: {
+    id: number;
+    full_name: string;
+    phone?: string | null;
+    email?: string | null;
+    preferred_contact_channel?: string | null;
+    notes?: string | null;
+  };
+  vehicle: {
+    id: number;
+    brand: string;
+    model: string;
+    year?: number | null;
+    vin?: string | null;
+    plate?: string | null;
+    color?: string | null;
+    is_active: boolean;
+  };
+  services: PortalServiceRecord[];
+}
+
 const AUTH_KEY = "7fitment_dashboard_basic_auth";
 const AUTH_FLAG = "7fitment_dashboard_session";
+const GARAGE_TOKEN_KEY = "7fitment_garage_portal_token";
+const GARAGE_VEHICLE_KEY = "7fitment_garage_vehicle_context";
 const LOCAL_DASHBOARD_PASSWORD = "7fitment2026";
 const API_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 export const PUBLIC_SITE_URL =
@@ -183,4 +257,62 @@ export async function submitBrowserLocation(
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
+}
+
+async function publicRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetch(apiUrl(path), {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...init.headers,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+  return (await response.json()) as T;
+}
+
+export function storeGarageVehicleContext(vehicleId: string): void {
+  sessionStorage.setItem(GARAGE_VEHICLE_KEY, vehicleId);
+}
+
+export function getGarageVehicleContext(): string | null {
+  return sessionStorage.getItem(GARAGE_VEHICLE_KEY);
+}
+
+export function storeGarageToken(token: string): void {
+  sessionStorage.setItem(GARAGE_TOKEN_KEY, token);
+}
+
+export function getGarageToken(): string | null {
+  return sessionStorage.getItem(GARAGE_TOKEN_KEY);
+}
+
+export function clearGarageSession(): void {
+  sessionStorage.removeItem(GARAGE_TOKEN_KEY);
+}
+
+export async function fetchGarageShowcase(slug: string): Promise<ShowcaseResponse> {
+  return publicRequest<ShowcaseResponse>(
+    `/api/garage/showcase/${encodeURIComponent(slug)}`,
+  );
+}
+
+export async function authenticateGaragePortal(
+  pin: string,
+  vehicleId?: string | null,
+): Promise<PortalAuthResponse> {
+  const payload = vehicleId ? { pin, vehicle_id: vehicleId } : { pin };
+  return publicRequest<PortalAuthResponse>("/api/garage/portal/auth", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchGaragePortalData(token: string): Promise<PortalDataResponse> {
+  return publicRequest<PortalDataResponse>("/api/garage/portal/data", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
