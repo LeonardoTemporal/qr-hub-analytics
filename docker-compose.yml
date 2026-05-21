@@ -66,11 +66,15 @@ services:
     labels:
       - traefik.docker.network=dokploy-network
       - traefik.enable=true
-      - "traefik.http.routers.qrhub-backend.rule=(Host(`7fitment.com`) || Host(`admin.7fitment.com`)) && (PathPrefix(`/api`) || PathPrefix(`/t`) || PathPrefix(`/r`) || PathPrefix(`/qr`))"
+      - "traefik.http.routers.qrhub-backend.rule=(Host(`7fitment.com`) || Host(`admin.7fitment.com`) || Host(`api.7fitment.com`)) && (PathPrefix(`/api`) || PathPrefix(`/t`) || PathPrefix(`/r`) || PathPrefix(`/qr`))"
       - traefik.http.routers.qrhub-backend.entrypoints=web
       - traefik.http.routers.qrhub-backend.priority=100
       - traefik.http.routers.qrhub-backend.service=qrhub-backend
       - traefik.http.services.qrhub-backend.loadbalancer.server.port=8000
+      - "traefik.http.routers.qrhub-api.rule=Host(`api.7fitment.com`)"
+      - traefik.http.routers.qrhub-api.entrypoints=web
+      - traefik.http.routers.qrhub-api.priority=110
+      - traefik.http.routers.qrhub-api.service=qrhub-backend
 
   # ---------------------------------------------------------------------------
   # frontend - Vite + React + Tailwind CSS v4, served by Nginx on port 3000.

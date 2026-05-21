@@ -324,7 +324,6 @@ function LoginGate({ onLogin }: { onLogin: () => void }) {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="focus-ring h-[54px] w-full rounded-[4px] border border-white/[0.08] bg-black/50 px-4 text-[#f2f2f2] outline-none transition-colors hover:border-white/[0.14]"
-              placeholder="7fitment2026"
             />
           </label>
 

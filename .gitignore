@@ -110,6 +110,7 @@ coverage/
 # Local analysis artifacts
 # -----------------------------------------------------------------------------
 .graphify_*
+.codegraph/
 graphify-out/
 *.analysis.md
 *_REPORT.md
