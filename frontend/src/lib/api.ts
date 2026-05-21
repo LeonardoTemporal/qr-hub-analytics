@@ -70,21 +70,6 @@ export const CAMPAIGN_OPTIONS: CampaignOption[] = [
     value: "qr_general",
     description: "Escaneos del QR impreso que redirige a /enlaces.",
   },
-  {
-    label: "Todas",
-    value: "all",
-    description: "Vista consolidada de todas las campañas.",
-  },
-  {
-    label: "WhatsApp",
-    value: "web_whatsapp",
-    description: "Clicks que pasan por tracking antes de WhatsApp.",
-  },
-  {
-    label: "Instagram",
-    value: "web_instagram",
-    description: "Clicks que pasan por tracking antes de Instagram.",
-  },
 ];
 
 function apiUrl(path: string): string {

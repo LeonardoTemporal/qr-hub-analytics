@@ -73,12 +73,47 @@ def test_tracking_endpoint_returns_social_redirect_without_following(
             "query_string": b"",
         }
     )
+    background_tasks = BackgroundTasks()
     response = asyncio.run(
-        redirect.redirect_campaign("web_instagram", request, BackgroundTasks())
+        redirect.redirect_campaign("web_instagram", request, background_tasks)
     )
 
     assert response.status_code == 302
     assert response.headers["location"] == "https://www.instagram.com/7fitment/"
+    assert len(background_tasks.tasks) == 0
+
+
+def test_qr_general_tracking_endpoint_enqueues_analytics(monkeypatch) -> None:
+    from fastapi import BackgroundTasks
+    from starlette.requests import Request
+
+    from app.routers import redirect
+
+    async def noop_record_scan(*_args, **_kwargs) -> None:
+        return None
+
+    monkeypatch.setattr(redirect, "_record_scan", noop_record_scan)
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/t/qr_general",
+            "headers": [(b"user-agent", b"pytest")],
+            "client": ("127.0.0.1", 12345),
+            "server": ("testserver", 80),
+            "scheme": "http",
+            "query_string": b"",
+        }
+    )
+    background_tasks = BackgroundTasks()
+    response = asyncio.run(
+        redirect.redirect_campaign("qr_general", request, background_tasks)
+    )
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://7fitment.com/enlaces"
+    assert len(background_tasks.tasks) == 1
 
 
 def test_client_ip_prefers_forwarded_headers() -> None:

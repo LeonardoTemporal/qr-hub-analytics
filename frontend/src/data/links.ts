@@ -12,14 +12,16 @@ export const contactLinks: LinkItem[] = [
   {
     label: "Cotizar proyecto",
     eyebrow: "WhatsApp directo",
-    href: "/t/web_whatsapp",
+    href: "https://wa.me/5215637940104?text=Hola%207Fitment%2C%20quiero%20cotizar%20un%20proyecto%20para%20mi%20auto",
     icon: MessageCircle,
+    external: true,
   },
   {
     label: "Instagram",
     eyebrow: "Trabajos recientes",
-    href: "/t/web_instagram",
+    href: "https://www.instagram.com/7fitment/",
     icon: Instagram,
+    external: true,
   },
   {
     label: "Ubicación",

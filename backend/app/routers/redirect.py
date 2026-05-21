@@ -69,6 +69,10 @@ def _build_redirect_target(frontend_url: str, campaign_id: str | None = None) ->
     return f"{frontend_url.rstrip('/')}/enlaces"
 
 
+def _should_record_analytics(campaign_id: str) -> bool:
+    return campaign_id.strip().lower() in settings.TRACKING_ANALYTICS_CAMPAIGNS
+
+
 # ---------------------------------------------------------------------------
 # Background Task – procesamiento asíncrono post-respuesta
 # ---------------------------------------------------------------------------
@@ -159,12 +163,13 @@ async def redirect_campaign(
     ip_address = _get_client_ip(request)
     user_agent_string = request.headers.get("User-Agent", "")
 
-    background_tasks.add_task(
-        _record_scan,
-        campaign_id=campaign_id,
-        ip_address=ip_address,
-        user_agent_string=user_agent_string,
-    )
+    if _should_record_analytics(campaign_id):
+        background_tasks.add_task(
+            _record_scan,
+            campaign_id=campaign_id,
+            ip_address=ip_address,
+            user_agent_string=user_agent_string,
+        )
 
     target_url = _build_redirect_target(settings.FRONTEND_URL, campaign_id)
     return RedirectResponse(url=target_url, status_code=302)

@@ -542,22 +542,24 @@ export default function DashboardPage() {
               {CAMPAIGN_OPTIONS.find((item) => item.value === campaignId)?.description}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {CAMPAIGN_OPTIONS.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setCampaignId(item.value)}
-                className={`focus-ring h-10 rounded-[4px] border px-4 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors ${
-                  campaignId === item.value
-                    ? "border-[#f2f2f2] bg-[#f2f2f2] text-black"
-                    : "border-white/[0.08] bg-black/20 text-[#8a8a8a] hover:border-white/[0.14] hover:text-[#f2f2f2]"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          {CAMPAIGN_OPTIONS.length > 1 ? (
+            <div className="flex flex-wrap gap-2">
+              {CAMPAIGN_OPTIONS.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => setCampaignId(item.value)}
+                  className={`focus-ring h-10 rounded-[4px] border px-4 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors ${
+                    campaignId === item.value
+                      ? "border-[#f2f2f2] bg-[#f2f2f2] text-black"
+                      : "border-white/[0.08] bg-black/20 text-[#8a8a8a] hover:border-white/[0.14] hover:text-[#f2f2f2]"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </section>
 
         {error ? (
