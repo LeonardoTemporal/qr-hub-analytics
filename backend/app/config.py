@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://qrhub:qrhub_secret@postgres:5432/qrhub"
     FRONTEND_URL: str = "http://localhost:3000"
     GEOIP_API_URL: str = "http://ip-api.com/json"
-    GEOIP_TIMEOUT_SECONDS: float = 1.5
+    GEOIP_TIMEOUT_SECONDS: float = 2.5
     DEFAULT_CAMPAIGN_ID: str = "7fitment"
     TRACKING_ANALYTICS_CAMPAIGNS: str = "qr_general"
     TRACKING_WHATSAPP_URL: str = (

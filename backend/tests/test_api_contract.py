@@ -127,6 +127,31 @@ def test_client_ip_prefers_forwarded_headers() -> None:
             "method": "GET",
             "path": "/t/qr_print",
             "headers": [
+                (b"cf-connecting-ip", b"198.51.100.40"),
+                (b"x-forwarded-for", b"203.0.113.10, 10.0.0.4"),
+                (b"x-real-ip", b"198.51.100.20"),
+            ],
+            "client": ("127.0.0.1", 12345),
+            "server": ("testserver", 80),
+            "scheme": "http",
+            "query_string": b"",
+        }
+    )
+
+    assert _get_client_ip(request) == "198.51.100.40"
+
+
+def test_client_ip_falls_back_to_first_forwarded_ip() -> None:
+    from starlette.requests import Request
+
+    from app.routers.redirect import _get_client_ip
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/t/qr_print",
+            "headers": [
                 (b"x-forwarded-for", b"203.0.113.10, 10.0.0.4"),
                 (b"x-real-ip", b"198.51.100.20"),
             ],
@@ -197,6 +222,22 @@ def test_ip_api_geo_service_degrades_to_unknown_on_timeout(monkeypatch) -> None:
     monkeypatch.setattr("app.services.geo_service.httpx.AsyncClient", TimeoutClient)
 
     geo = asyncio.run(IPApiGeoService(timeout_seconds=0.01).lookup("8.8.8.8"))
+
+    assert geo.country == "Unknown"
+    assert geo.state == "Unknown"
+    assert geo.city == "Unknown"
+
+
+def test_ip_api_geo_service_skips_private_ips(monkeypatch) -> None:
+    from app.services.geo_service import IPApiGeoService
+
+    class FailingClient:
+        def __init__(self, *_args, **_kwargs) -> None:
+            raise AssertionError("Private IPs must not call external GeoIP API")
+
+    monkeypatch.setattr("app.services.geo_service.httpx.AsyncClient", FailingClient)
+
+    geo = asyncio.run(IPApiGeoService().lookup("10.0.0.4"))
 
     assert geo.country == "Unknown"
     assert geo.state == "Unknown"

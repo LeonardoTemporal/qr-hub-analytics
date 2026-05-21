@@ -12,8 +12,8 @@ Endpoints especializados (todos protegidos con HTTP Basic Auth):
     GET /api/analytics/location/{campaign_id}
         Top paises, estados (subdivisiones) y ciudades / municipios
 
-    GET /api/analytics/timeline/{campaign_id}?range=7d|30d|hoy
-        Serie de tiempo agrupada por dia (o por hora cuando range=hoy)
+    GET /api/analytics/timeline/{campaign_id}?range=7d|30d|12m|hoy
+        Serie de tiempo agrupada por dia, mes u hora cuando range=hoy.
 
 Tambien expone el endpoint legacy GET /api/analytics/{campaign_id}
 para no romper integraciones existentes durante la transicion.
@@ -35,7 +35,7 @@ from app.models import Scan
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-TimeRange = Literal["hoy", "7d", "30d"]
+TimeRange = Literal["hoy", "7d", "30d", "12m"]
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +48,21 @@ def _range_to_start(range_: TimeRange) -> datetime:
         return now.replace(hour=0, minute=0, second=0, microsecond=0)
     if range_ == "7d":
         return now - timedelta(days=7)
+    if range_ == "12m":
+        month = now.month - 11
+        year = now.year
+        while month <= 0:
+            month += 12
+            year -= 1
+        return now.replace(
+            year=year,
+            month=month,
+            day=1,
+            hour=0,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
     return now - timedelta(days=30)
 
 
@@ -164,7 +179,7 @@ async def _build_timeline(
     range_: TimeRange = "30d",
 ) -> dict:
     start = _range_to_start(range_)
-    bucket = "hour" if range_ == "hoy" else "day"
+    bucket = "hour" if range_ == "hoy" else "month" if range_ == "12m" else "day"
 
     rows = (
         await session.execute(

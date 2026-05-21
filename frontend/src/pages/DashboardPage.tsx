@@ -57,6 +57,7 @@ const ranges: { label: string; value: TimeRange }[] = [
   { label: "Hoy", value: "hoy" },
   { label: "7 dias", value: "7d" },
   { label: "30 dias", value: "30d" },
+  { label: "12 meses", value: "12m" },
 ];
 
 const chartColors = ["#f2f2f2", "#cfcfcf", "#9a9a9a", "#6a6a6a", "#3f3f3f"];
@@ -72,6 +73,12 @@ function formatDateTick(value: string, range: TimeRange): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   if (range === "hoy") return `${String(date.getHours()).padStart(2, "0")}:00`;
+  if (range === "12m") {
+    return new Intl.DateTimeFormat("es-MX", {
+      month: "short",
+      year: "2-digit",
+    }).format(date);
+  }
   return `${date.getDate()}/${date.getMonth() + 1}`;
 }
 

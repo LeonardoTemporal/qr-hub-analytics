@@ -59,14 +59,14 @@ class IPApiGeoService:
     """
     Resuelve IPs publicas usando http://ip-api.com/json/{ip}.
 
-    El timeout por defecto es 1.5s para proteger la velocidad percibida del
+    El timeout por defecto es 2.5s para proteger la velocidad percibida del
     redirect. IPs privadas/locales devuelven Unknown sin hacer llamada externa.
     """
 
     def __init__(
         self,
         base_url: str = "http://ip-api.com/json",
-        timeout_seconds: float = 1.5,
+        timeout_seconds: float = 2.5,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
@@ -74,6 +74,7 @@ class IPApiGeoService:
     async def lookup(self, ip_address: str) -> GeoLocation:
         ip_address = _normalise_ip(ip_address)
         if not ip_address or not _is_public_ip(ip_address):
+            logger.info("Skipping IP geolocation for non-public IP: %r", ip_address)
             return GeoLocation()
 
         try:

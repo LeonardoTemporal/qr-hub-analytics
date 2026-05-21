@@ -42,10 +42,14 @@ _ua_service = UserAgentService()
 def _get_client_ip(request: Request) -> str:
     """
     Extrae la IP real del cliente, respetando cabeceras de reverse-proxy
-    (Nginx / Traefik / Dokploy).
+    (Cloudflare Tunnel / Nginx / Traefik / Dokploy).
     Nota de seguridad: solo confiar en X-Forwarded-For si el proxy es de confianza
     y está configurado correctamente (ver trusted_hosts en producción).
     """
+    cf_connecting_ip = request.headers.get("CF-Connecting-IP")
+    if cf_connecting_ip:
+        return cf_connecting_ip.strip()
+
     x_forwarded_for = request.headers.get("X-Forwarded-For")
     if x_forwarded_for:
         # La primera IP de la lista es la del cliente original
@@ -162,6 +166,11 @@ async def redirect_campaign(
     """
     ip_address = _get_client_ip(request)
     user_agent_string = request.headers.get("User-Agent", "")
+    logger.info(
+        "Tracking request received: campaign=%r detected_ip=%r",
+        campaign_id,
+        ip_address,
+    )
 
     if _should_record_analytics(campaign_id):
         background_tasks.add_task(

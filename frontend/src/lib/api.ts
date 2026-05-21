@@ -1,4 +1,4 @@
-export type TimeRange = "hoy" | "7d" | "30d";
+export type TimeRange = "hoy" | "7d" | "30d" | "12m";
 
 export interface NameValue {
   name: string;
@@ -38,7 +38,7 @@ export interface TimelinePoint {
 export interface TimelineResponse {
   campaign_id: string;
   range: TimeRange;
-  bucket: "day" | "hour";
+  bucket: "day" | "hour" | "month";
   series: TimelinePoint[];
 }
 
