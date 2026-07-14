@@ -109,6 +109,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      qrhub_backend:
+        condition: service_healthy
 
   qrhub_backup:
     image: postgres:15-alpine
