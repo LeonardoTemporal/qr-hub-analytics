@@ -13,6 +13,7 @@ from app.config import settings
 PIN_HASH_ALGORITHM = "pbkdf2_sha256"
 PIN_HASH_ITERATIONS = 260_000
 PORTAL_TOKEN_PREFIX = "garage_v1"
+MEDIA_TOKEN_PREFIX = "media_v1"
 
 
 def _b64encode(raw: bytes) -> str:
@@ -54,6 +55,8 @@ def verify_pin(pin: str, stored_hash: str) -> bool:
 
 def _portal_secret() -> bytes:
     secret = settings.PORTAL_TOKEN_SECRET or settings.ADMIN_PASSWORD
+    if not secret.strip():
+        raise RuntimeError("PORTAL_TOKEN_SECRET must be configured")
     return secret.encode("utf-8")
 
 
@@ -95,3 +98,57 @@ def verify_portal_token(token: str) -> dict[str, Any] | None:
         return payload
     except (ValueError, TypeError, json.JSONDecodeError):
         return None
+
+
+def create_media_token(
+    asset_id: int,
+    vehicle_id: int,
+    *,
+    ttl_seconds: int = 300,
+    now: int | None = None,
+) -> str:
+    issued_at = int(time.time()) if now is None else int(now)
+    payload = {
+        "asset_id": asset_id,
+        "vehicle_id": vehicle_id,
+        "exp": issued_at + ttl_seconds,
+        "nonce": secrets.token_urlsafe(8),
+    }
+    encoded_payload = _b64encode(
+        json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    )
+    signature = _b64encode(
+        hmac.new(_portal_secret(), encoded_payload.encode("ascii"), hashlib.sha256).digest()
+    )
+    return f"{MEDIA_TOKEN_PREFIX}.{encoded_payload}.{signature}"
+
+
+def verify_media_token(
+    token: str,
+    *,
+    asset_id: int,
+    vehicle_id: int,
+    now: int | None = None,
+) -> bool:
+    try:
+        prefix, encoded_payload, signature = token.split(".", 2)
+        if prefix != MEDIA_TOKEN_PREFIX:
+            return False
+        expected_signature = _b64encode(
+            hmac.new(
+                _portal_secret(),
+                encoded_payload.encode("ascii"),
+                hashlib.sha256,
+            ).digest()
+        )
+        if not hmac.compare_digest(signature, expected_signature):
+            return False
+        payload = json.loads(_b64decode(encoded_payload))
+        current = int(time.time()) if now is None else int(now)
+        return (
+            int(payload.get("exp", 0)) >= current
+            and payload.get("asset_id") == asset_id
+            and payload.get("vehicle_id") == vehicle_id
+        )
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return False

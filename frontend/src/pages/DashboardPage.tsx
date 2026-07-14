@@ -7,8 +7,6 @@ import {
   Calendar,
   Download,
   Globe2,
-  Lock,
-  LogOut,
   MapPin,
   Monitor,
   PieChart as PieChartIcon,
@@ -16,8 +14,9 @@ import {
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
+import L, { type LayerGroup, type Map as LeafletMap } from "leaflet";
+import "leaflet/dist/leaflet.css";
 import {
-  FormEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -25,7 +24,8 @@ import {
   useRef,
   useState,
 } from "react";
-import { gsap } from "gsap";
+import { gsap, ScrollTrigger, prefersReducedMotion } from "../lib/motion";
+import { useLenis } from "../hooks/useLenis";
 import {
   Area,
   AreaChart,
@@ -41,15 +41,15 @@ import {
   YAxis,
 } from "recharts";
 import {
-  clearSession,
   CAMPAIGN_OPTIONS,
   DEFAULT_CAMPAIGN_ID,
   fetchAnalytics,
-  login,
   QR_GENERAL_TRACKING_URL,
-  validateSession,
   type AnalyticsBundle,
+  type GeoCluster,
   type NameValue,
+  type ScanDetailItem,
+  type ScanDetailResponse,
   type TimeRange,
 } from "../lib/api";
 
@@ -80,6 +80,23 @@ function formatDateTick(value: string, range: TimeRange): string {
     }).format(date);
   }
   return `${date.getDate()}/${date.getMonth() + 1}`;
+}
+
+function formatDateTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("es-MX", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function formatCoordinate(value: number | null): string {
+  return typeof value === "number" ? value.toFixed(4) : "N/D";
 }
 
 function AnimatedNumber({ value }: { value: number | string }) {
@@ -241,6 +258,268 @@ function LocationList({
   );
 }
 
+function GeoMapPanel({ clusters }: { clusters: GeoCluster[] }) {
+  const mapNodeRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const markerLayerRef = useRef<LayerGroup | null>(null);
+
+  useEffect(() => {
+    if (!mapNodeRef.current || mapRef.current) return;
+
+    const map = L.map(mapNodeRef.current, {
+      center: [19.4326, -99.1332],
+      zoom: 9,
+      zoomControl: false,
+      scrollWheelZoom: false,
+      attributionControl: true,
+    });
+    map.attributionControl.setPrefix("");
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+
+    const tileLayer = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        attribution: "&copy; OpenStreetMap",
+        maxZoom: 19,
+      },
+    );
+    tileLayer.on("load", () => requestAnimationFrame(() => ScrollTrigger.refresh()));
+    tileLayer.addTo(map);
+
+    const markerLayer = L.layerGroup().addTo(map);
+    mapRef.current = map;
+    markerLayerRef.current = markerLayer;
+    setTimeout(() => map.invalidateSize(), 120);
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      markerLayerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const markerLayer = markerLayerRef.current;
+    if (!map || !markerLayer) return;
+
+    markerLayer.clearLayers();
+    const bounds: L.LatLngExpression[] = [];
+
+    clusters.forEach((cluster) => {
+      const position: L.LatLngExpression = [cluster.latitude, cluster.longitude];
+      bounds.push(position);
+      const marker = L.marker(position, {
+        icon: L.divIcon({
+          className: "sevenf-map-marker",
+          html: `<span>${cluster.scan_count}</span>`,
+          iconSize: [42, 42],
+          iconAnchor: [21, 21],
+        }),
+        keyboard: true,
+        title: `${cluster.scan_count} escaneos`,
+      });
+      marker.bindTooltip(
+        `${cluster.scan_count} escaneos · ${cluster.top_device_type ?? "Dispositivo N/D"}`,
+        { direction: "top", opacity: 0.96 },
+      );
+      marker.addTo(markerLayer);
+    });
+
+    if (bounds.length === 1) {
+      map.setView(bounds[0], 11, { animate: !prefersReducedMotion() });
+    } else if (bounds.length > 1) {
+      map.fitBounds(L.latLngBounds(bounds), {
+        padding: [42, 42],
+        maxZoom: 12,
+        animate: !prefersReducedMotion(),
+      });
+    }
+
+    requestAnimationFrame(() => {
+      map.invalidateSize();
+      ScrollTrigger.refresh();
+    });
+  }, [clusters]);
+
+  return (
+    <Panel title="Mapa de origen" icon={MapPin} className="overflow-hidden">
+      <div className="relative overflow-hidden rounded-[8px] border border-white/[0.08] bg-[#050505]">
+        <div className="pointer-events-none absolute left-4 top-4 z-[500] flex items-center gap-2 rounded-[4px] border border-white/[0.08] bg-[#050505]/80 px-3 py-2 backdrop-blur-xl">
+          <span className="h-2 w-2 rounded-full bg-[#f2f2f2]" />
+          <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-[#f2f2f2]">
+            Tracking QR
+          </span>
+        </div>
+        <div className="pointer-events-none absolute right-4 top-4 z-[500] rounded-[4px] border border-white/[0.08] bg-[#050505]/80 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070] backdrop-blur-xl">
+          {clusters.length} clusters
+        </div>
+        <div ref={mapNodeRef} data-lenis-prevent className="h-[480px] w-full" />
+        {!clusters.length ? (
+          <div className="pointer-events-none absolute inset-0 z-[501] flex items-center justify-center bg-[#050505]/72 px-6 text-center">
+            <p className="max-w-sm font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070]">
+              Sin coordenadas registradas para este rango.
+            </p>
+          </div>
+        ) : null}
+      </div>
+    </Panel>
+  );
+}
+
+type ScanSortBy =
+  | "scanned_at"
+  | "city"
+  | "state"
+  | "device_type"
+  | "os"
+  | "browser"
+  | "campaign_id";
+
+function ScanTablePanel({
+  scans,
+  sortBy,
+  sortOrder,
+  onSort,
+  onPage,
+}: {
+  scans: ScanDetailResponse | null;
+  sortBy: ScanSortBy;
+  sortOrder: "asc" | "desc";
+  onSort: (sortBy: ScanSortBy) => void;
+  onPage: (page: number) => void;
+}) {
+  const items = scans?.items ?? [];
+  const page = scans?.page ?? 1;
+  const pageSize = scans?.page_size ?? 25;
+  const total = scans?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  const headers: { label: string; value: ScanSortBy }[] = [
+    { label: "Fecha", value: "scanned_at" },
+    { label: "Ubicacion", value: "city" },
+    { label: "Dispositivo", value: "device_type" },
+    { label: "Sistema", value: "os" },
+    { label: "Navegador", value: "browser" },
+    { label: "QR", value: "campaign_id" },
+  ];
+
+  return (
+    <Panel title="Tabla de escaneos" icon={BarChart3} className="mt-5">
+      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070]">
+            Registros
+          </p>
+          <p className="mt-1 text-[24px] font-light tracking-[-0.05em] text-[#f2f2f2]">
+            {total.toLocaleString("es-MX")} escaneos
+          </p>
+        </div>
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070]">
+          Pagina {page} / {totalPages}
+        </p>
+      </div>
+
+      {items.length ? (
+        <>
+          <div className="hidden overflow-x-auto rounded-[6px] border border-white/[0.06] md:block">
+            <table className="w-full min-w-[980px] border-collapse text-left">
+              <thead className="bg-white/[0.025]">
+                <tr>
+                  {headers.map((header) => (
+                    <th key={header.value} scope="col" className="border-b border-white/[0.06] px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => onSort(header.value)}
+                        className="focus-ring font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070] transition-colors hover:text-[#f2f2f2]"
+                        aria-sort={
+                          sortBy === header.value
+                            ? sortOrder === "asc"
+                              ? "ascending"
+                              : "descending"
+                            : "none"
+                        }
+                      >
+                        {header.label}
+                        {sortBy === header.value ? ` ${sortOrder === "asc" ? "↑" : "↓"}` : ""}
+                      </button>
+                    </th>
+                  ))}
+                  <th scope="col" className="border-b border-white/[0.06] px-4 py-3 font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070]">
+                    Geo
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((scan) => (
+                  <tr key={scan.id} tabIndex={0} className="focus-ring border-b border-white/[0.045] transition-colors hover:bg-white/[0.025] focus:bg-white/[0.035]">
+                    <td className="px-4 py-4 font-mono text-[11px] text-[#b8b8b8]">{formatDateTime(scan.scanned_at)}</td>
+                    <td className="px-4 py-4 text-[13px] text-[#f2f2f2]">{scan.location_display}</td>
+                    <td className="px-4 py-4 text-[13px] text-[#b8b8b8]">{scan.device_type ?? "N/D"}</td>
+                    <td className="px-4 py-4 text-[13px] text-[#b8b8b8]">{scan.os ?? "N/D"}</td>
+                    <td className="px-4 py-4 text-[13px] text-[#b8b8b8]">{scan.browser ?? "N/D"}</td>
+                    <td className="px-4 py-4 font-mono text-[11px] text-[#707070]">{scan.campaign_id}</td>
+                    <td className="px-4 py-4 font-mono text-[10px] uppercase tracking-[0.08em] text-[#707070]">
+                      {formatCoordinate(scan.latitude)}, {formatCoordinate(scan.longitude)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-3 md:hidden">
+            {items.map((scan: ScanDetailItem) => (
+              <article key={scan.id} className="rounded-[6px] border border-white/[0.07] bg-white/[0.025] p-4">
+                <div className="mb-3 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070]">
+                      {scan.campaign_id}
+                    </p>
+                    <h3 className="mt-1 text-[15px] font-medium tracking-[-0.03em] text-[#f2f2f2]">
+                      {scan.location_display}
+                    </h3>
+                  </div>
+                  <span className="font-mono text-[10px] text-[#707070]">{formatDateTime(scan.scanned_at)}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-[#707070]">
+                  <span>{scan.device_type ?? "N/D"}</span>
+                  <span>{scan.os ?? "N/D"}</span>
+                  <span>{scan.browser ?? "N/D"}</span>
+                  <span>{scan.geo_source ?? "N/D"}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </>
+      ) : (
+        <EmptyState />
+      )}
+
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => onPage(Math.max(1, page - 1))}
+          disabled={page <= 1}
+          className="focus-ring inline-flex h-10 items-center gap-2 rounded-[4px] border border-white/[0.08] px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#b8b8b8] disabled:opacity-35"
+        >
+          <ArrowLeft size={14} />
+          Anterior
+        </button>
+        <button
+          type="button"
+          onClick={() => onPage(Math.min(totalPages, page + 1))}
+          disabled={page >= totalPages}
+          className="focus-ring inline-flex h-10 items-center gap-2 rounded-[4px] border border-white/[0.08] px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#b8b8b8] disabled:opacity-35"
+        >
+          Siguiente
+          <ArrowRight size={14} />
+        </button>
+      </div>
+    </Panel>
+  );
+}
+
 function exportCsv(bundle: AnalyticsBundle, campaignId: string): void {
   const rows = [
     ["7Fitment Analytics"],
@@ -272,86 +551,6 @@ function exportCsv(bundle: AnalyticsBundle, campaignId: string): void {
   anchor.download = `7fitment_analytics_${new Date().toISOString().slice(0, 10)}.csv`;
   anchor.click();
   URL.revokeObjectURL(url);
-}
-
-function LoginGate({ onLogin }: { onLogin: () => void }) {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    try {
-      await login(password);
-      onLogin();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo iniciar sesion");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050505] px-5 py-10 text-[#f2f2f2]">
-      <div className="dashboard-grid pointer-events-none absolute inset-0 opacity-60" />
-      <a href="/" className="focus-ring absolute left-5 top-5 z-10 inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-[#707070] transition-colors hover:text-[#f2f2f2]">
-        <ArrowLeft size={15} />
-        Inicio
-      </a>
-      <section className="relative z-10 w-full max-w-[460px]">
-        <div className="mb-10 text-center">
-          <div className="mx-auto mb-7 flex h-20 w-20 items-center justify-center rounded-[6px] border border-white/[0.08] bg-white/[0.03]">
-            <span className="text-[22px] font-semibold tracking-[-0.06em]">7F</span>
-          </div>
-          <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.26em] text-[#707070]">
-            Acceso seguro
-          </p>
-          <h1 className="text-[42px] font-light leading-none tracking-[-0.06em] sm:text-[54px]">
-            Analytics
-          </h1>
-        </div>
-
-        <form onSubmit={handleSubmit} className="rounded-[6px] border border-white/[0.08] bg-white/[0.03] p-6 backdrop-blur-xl sm:p-8">
-          <div className="mb-6 flex items-center gap-4">
-            <span className="flex h-11 w-11 items-center justify-center rounded-[4px] border border-white/[0.08] bg-white/[0.03] text-[#b8b8b8]">
-              <Lock size={18} strokeWidth={1.5} />
-            </span>
-            <div>
-              <h2 className="text-[18px] font-medium tracking-[-0.04em]">Dashboard</h2>
-              <p className="mt-1 text-[13px] text-[#707070]">Ingresa la clave de administracion</p>
-            </div>
-          </div>
-
-          <label className="block">
-            <span className="mb-2 block text-[10px] font-medium uppercase tracking-[0.22em] text-[#707070]">
-              Clave
-            </span>
-            <input
-              autoFocus
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="focus-ring h-[54px] w-full rounded-[4px] border border-white/[0.08] bg-black/50 px-4 text-[#f2f2f2] outline-none transition-colors hover:border-white/[0.14]"
-            />
-          </label>
-
-          {error ? <p className="mt-4 text-center text-[13px] text-red-300">{error}</p> : null}
-
-          <button
-            type="submit"
-            disabled={!password || submitting}
-            className="focus-ring mt-6 inline-flex h-[54px] w-full items-center justify-center gap-2 rounded-[4px] bg-[#f2f2f2] text-[13px] font-semibold uppercase tracking-[0.12em] text-black transition-opacity disabled:opacity-45"
-          >
-            {submitting ? "Validando" : "Ingresar"}
-            {!submitting ? <ArrowRight size={16} strokeWidth={1.8} /> : null}
-          </button>
-        </form>
-      </section>
-    </main>
-  );
 }
 
 function LoadingState() {
@@ -386,44 +585,41 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
 
 export default function DashboardPage() {
   const dashboardRef = useRef<HTMLDivElement>(null);
-  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [range, setRange] = useState<TimeRange>("30d");
   const [campaignId, setCampaignId] = useState(DEFAULT_CAMPAIGN_ID);
+  const [scanPage, setScanPage] = useState(1);
+  const [scanSortBy, setScanSortBy] = useState<ScanSortBy>("scanned_at");
+  const [scanSortOrder, setScanSortOrder] = useState<"asc" | "desc">("desc");
   const [bundle, setBundle] = useState<AnalyticsBundle | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    validateSession().then((valid) => {
-      if (!cancelled) setAuthenticated(valid);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  useLenis();
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const next = await fetchAnalytics(range, campaignId);
+      const next = await fetchAnalytics(range, campaignId, {
+        page: scanPage,
+        pageSize: 25,
+        sortBy: scanSortBy,
+        sortOrder: scanSortOrder,
+      });
       setBundle(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error cargando analiticas");
     } finally {
       setLoading(false);
     }
-  }, [campaignId, range]);
+  }, [campaignId, range, scanPage, scanSortBy, scanSortOrder]);
 
   useEffect(() => {
-    if (authenticated) void load();
-  }, [authenticated, load]);
+    void load();
+  }, [load]);
 
   useEffect(() => {
     if (!bundle || !dashboardRef.current) return;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
+    if (prefersReducedMotion()) {
       gsap.set(".dash-reveal", { opacity: 1, y: 0 });
       return;
     }
@@ -436,6 +632,9 @@ export default function DashboardPage() {
       );
     }, dashboardRef);
 
+    // charts render asynchronously and change page height; keep triggers honest
+    requestAnimationFrame(() => ScrollTrigger.refresh());
+
     return () => ctx.revert();
   }, [bundle, campaignId, range]);
 
@@ -443,22 +642,32 @@ export default function DashboardPage() {
     () => bundle?.geo.municipalities ?? bundle?.geo.cities ?? [],
     [bundle],
   );
+  const handleSort = useCallback(
+    (nextSortBy: ScanSortBy) => {
+      setScanPage(1);
+      if (scanSortBy === nextSortBy) {
+        setScanSortOrder((current) => (current === "asc" ? "desc" : "asc"));
+      } else {
+        setScanSortBy(nextSortBy);
+        setScanSortOrder("desc");
+      }
+    },
+    [scanSortBy],
+  );
 
-  if (authenticated === null) return <LoadingState />;
-  if (!authenticated) return <LoginGate onLogin={() => setAuthenticated(true)} />;
   if (loading && !bundle) return <LoadingState />;
   if (error && !bundle) return <ErrorState error={error} onRetry={load} />;
 
   return (
     <main ref={dashboardRef} className="dashboard-grid min-h-screen bg-[#050505] text-[#f2f2f2]">
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/60 backdrop-blur-2xl">
+      <header className="sticky top-16 z-30 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl md:bg-black/60">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 md:px-8">
           <div className="flex items-center gap-4">
             <a href="/" className="focus-ring hidden h-11 w-11 items-center justify-center rounded-[4px] bg-[#f2f2f2] text-[14px] font-semibold tracking-[-0.06em] text-black sm:flex">
               7F
             </a>
             <div>
-              <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-[#707070]">
+              <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#707070]">
                 QR Analytics
               </p>
               <h1 className="mt-1 text-[18px] font-medium tracking-[-0.04em]">
@@ -472,18 +681,6 @@ export default function DashboardPage() {
               <ArrowLeft size={14} />
               Sitio
             </a>
-            <button
-              type="button"
-              onClick={() => {
-                clearSession();
-                setAuthenticated(false);
-                setBundle(null);
-              }}
-              className="focus-ring inline-flex items-center gap-2 rounded-[4px] border border-white/[0.08] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-[#9a9a9a] transition-colors hover:text-[#f2f2f2]"
-            >
-              <LogOut size={14} />
-              Salir
-            </button>
           </div>
         </div>
       </header>
@@ -508,7 +705,10 @@ export default function DashboardPage() {
                 <button
                   key={item.value}
                   type="button"
-                  onClick={() => setRange(item.value)}
+                  onClick={() => {
+                    setRange(item.value);
+                    setScanPage(1);
+                  }}
                   className={`focus-ring h-9 rounded-[3px] px-4 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors ${
                     range === item.value
                       ? "bg-[#f2f2f2] text-black"
@@ -555,7 +755,10 @@ export default function DashboardPage() {
                 <button
                   key={item.value}
                   type="button"
-                  onClick={() => setCampaignId(item.value)}
+                  onClick={() => {
+                    setCampaignId(item.value);
+                    setScanPage(1);
+                  }}
                   className={`focus-ring h-10 rounded-[4px] border px-4 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors ${
                     campaignId === item.value
                       ? "border-[#f2f2f2] bg-[#f2f2f2] text-black"
@@ -651,6 +854,10 @@ export default function DashboardPage() {
           </Panel>
         </div>
 
+        <div className="mt-5">
+          <GeoMapPanel clusters={bundle?.geo.clusters ?? []} />
+        </div>
+
         <div className="mt-5 grid gap-5 lg:grid-cols-3">
           <Panel title="Sistemas operativos" icon={Smartphone}>
             <div className="h-[280px]">
@@ -706,6 +913,14 @@ export default function DashboardPage() {
           <LocationList title="Top estados" icon={Building2} items={bundle?.geo.states ?? []} />
           <LocationList title="Top paises" icon={Globe2} items={bundle?.geo.countries ?? []} />
         </div>
+
+        <ScanTablePanel
+          scans={bundle?.scans ?? null}
+          sortBy={scanSortBy}
+          sortOrder={scanSortOrder}
+          onSort={handleSort}
+          onPage={setScanPage}
+        />
 
         <footer className="mt-12 border-t border-white/[0.06] py-7 text-center text-[10px] uppercase tracking-[0.22em] text-[#575757]">
           QR-Hub Analytics · 7Fitment

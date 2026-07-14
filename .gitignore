@@ -132,3 +132,5 @@ frontend/vite.config.d.ts
 frontend/frontend/
 frontend/uploads/
 frontend/assets/
+# Generated OpenAPI source used by the frontend type generator
+backend/openapi.json

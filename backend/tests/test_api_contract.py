@@ -3,10 +3,25 @@ from __future__ import annotations
 import asyncio
 
 
+def test_readiness_check_queries_postgresql() -> None:
+    from app.main import readiness_check
+
+    class FakeSession:
+        called = False
+
+        async def execute(self, _statement) -> None:
+            self.called = True
+
+    session = FakeSession()
+
+    assert asyncio.run(readiness_check(session)) == {"status": "ready"}
+    assert session.called is True
+
+
 def test_required_routes_are_registered() -> None:
     from app.main import app
 
-    paths = {route.path for route in app.routes}
+    paths = set(app.openapi()["paths"].keys())
 
     assert "/r/{campaign_id}" in paths
     assert "/t/{campaign_id}" in paths
@@ -16,6 +31,7 @@ def test_required_routes_are_registered() -> None:
     assert "/api/analytics/kpis" in paths
     assert "/api/analytics/distribution" in paths
     assert "/api/analytics/geo" in paths
+    assert "/api/analytics/scans" in paths
     assert "/api/analytics/timeline" in paths
     assert "/api/garage/showcase/{slug_or_id}" in paths
     assert "/api/garage/portal/auth" in paths
@@ -208,6 +224,65 @@ def test_ip_api_geo_service_maps_state_and_city(monkeypatch) -> None:
     assert geo.country == "Mexico"
     assert geo.state == "Estado de Mexico"
     assert geo.city == "Naucalpan de Juarez"
+
+
+def test_ip_api_geo_service_maps_coordinates(monkeypatch) -> None:
+    import httpx
+
+    from app.services.geo_service import IPApiGeoService
+
+    class DummyClient:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args) -> None:
+            return None
+
+        async def get(self, url: str, **_kwargs):
+            return httpx.Response(
+                200,
+                json={
+                    "status": "success",
+                    "country": "Mexico",
+                    "regionName": "Ciudad de Mexico",
+                    "city": "Miguel Hidalgo",
+                    "lat": 19.4326,
+                    "lon": -99.1332,
+                },
+                request=httpx.Request("GET", url),
+            )
+
+    monkeypatch.setattr("app.services.geo_service.httpx.AsyncClient", DummyClient)
+
+    geo = asyncio.run(IPApiGeoService().lookup("8.8.8.8"))
+
+    assert geo.latitude == 19.4326
+    assert geo.longitude == -99.1332
+    assert geo.accuracy_meters == 5000
+
+
+def test_compute_scan_geohashes_returns_level_5_and_7() -> None:
+    from app.services.geohash_service import compute_scan_geohashes
+
+    geo_hash_5, geo_hash_7 = compute_scan_geohashes(19.4326, -99.1332)
+
+    assert geo_hash_5 == geo_hash_7[:5]
+    assert len(geo_hash_5) == 5
+    assert len(geo_hash_7) == 7
+
+
+def test_scan_sort_rejects_unknown_column() -> None:
+    from app.routers.analytics import _normalise_scan_sort
+
+    try:
+        _normalise_scan_sort("internal_notes", "desc")
+    except ValueError as exc:
+        assert "sort_by" in str(exc)
+    else:
+        raise AssertionError("invalid sort_by should fail")
 
 
 def test_ip_api_geo_service_degrades_to_unknown_on_timeout(monkeypatch) -> None:

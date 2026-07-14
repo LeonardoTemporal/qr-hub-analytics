@@ -35,9 +35,17 @@ class Settings(BaseSettings):
     # En producción: definir vía variables de entorno seguras.
     # Nunca exponer estos valores al frontend.
     ADMIN_USERNAME: str = "admin"
-    ADMIN_PASSWORD: str = "7fitment2026"
+    ADMIN_PASSWORD: str = ""
     PORTAL_TOKEN_SECRET: str | None = None
     PORTAL_TOKEN_TTL_SECONDS: int = 1800
+    MEDIA_TOKEN_TTL_SECONDS: int = 1800
+    MEDIA_ROOT: str = "/srv/7fitment-media"
+    MEDIA_MAX_UPLOAD_MB: int = 250
+    RAW_ANALYTICS_RETENTION_DAYS: int = 365
+    N8N_WEBHOOK_URL: str | None = None
+    WORKER_POLL_SECONDS: float = 2.0
+    ADMIN_COOKIE_SECURE: bool = False
+    COOKIE_DOMAIN: str | None = None
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
@@ -45,6 +53,11 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [origin.strip() for origin in value.split(",") if origin.strip()]
         return value
+
+    @field_validator("COOKIE_DOMAIN", mode="before")
+    @classmethod
+    def parse_cookie_domain(cls, value: str | None) -> str | None:
+        return value.strip() or None if isinstance(value, str) else value
 
     @property
     def enlaces_url(self) -> str:

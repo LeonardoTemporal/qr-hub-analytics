@@ -1,69 +1,55 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 
+import RequireAdmin from "./features/admin/auth/RequireAdmin";
+import AdminLayout from "./features/admin/layout/AdminLayout";
+import { RouteLoading } from "./ui/RouteState";
+
+const AdminLoginPage = lazy(() => import("./features/admin/pages/AdminLoginPage"));
+const AdminOverviewPage = lazy(() => import("./features/admin/pages/AdminOverviewPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const EnlacesPage = lazy(() => import("./pages/EnlacesPage"));
 const GarageDashboard = lazy(() => import("./pages/GarageDashboard"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
+const MediaPage = lazy(() => import("./features/admin/pages/MediaPage"));
+const OrdersPage = lazy(() => import("./features/admin/pages/OrdersPage"));
 const PortalAuth = lazy(() => import("./pages/PortalAuth"));
+const PublicationPage = lazy(() => import("./features/admin/pages/PublicationPage"));
 const ShowcasePage = lazy(() => import("./pages/ShowcasePage"));
+const WorkshopPage = lazy(() => import("./features/admin/pages/WorkshopPage"));
+const WarrantiesPage = lazy(() => import("./features/admin/pages/WarrantiesPage"));
 
-function currentPath(): string {
-  return window.location.pathname.replace(/\/+$/, "") || "/";
-}
-
-function shouldBypassClientRouter(href: string): boolean {
-  return /^\/(api|r|t|qr)(\/|$)/.test(href);
+function ShowcaseRoute() {
+  const { slug = "" } = useParams();
+  return <ShowcasePage slug={decodeURIComponent(slug)} />;
 }
 
 export default function App() {
-  const [path, setPath] = useState(currentPath);
-  const autoSlug = path.startsWith("/auto/") ? decodeURIComponent(path.slice(6)) : null;
-
-  useEffect(() => {
-    const onPopState = () => setPath(currentPath());
-    window.addEventListener("popstate", onPopState);
-
-    const onClick = (event: MouseEvent) => {
-      const anchor = (event.target as HTMLElement).closest("a");
-      if (!anchor) return;
-      const href = anchor.getAttribute("href");
-      if (
-        !href ||
-        shouldBypassClientRouter(href) ||
-        href.startsWith("#") ||
-        href.startsWith("http") ||
-        href.startsWith("mailto:") ||
-        href.startsWith("tel:") ||
-        (anchor.target && anchor.target !== "_self")
-      ) {
-        return;
-      }
-      event.preventDefault();
-      window.history.pushState({}, "", href);
-      setPath(currentPath());
-      window.scrollTo({ top: 0 });
-    };
-
-    document.addEventListener("click", onClick);
-    return () => {
-      window.removeEventListener("popstate", onPopState);
-      document.removeEventListener("click", onClick);
-    };
-  }, []);
-
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-bg-base text-text-muted">7FITMENT</div>}>
-      {path === "/enlaces" || path.startsWith("/enlaces/") ? <EnlacesPage /> : null}
-      {path === "/dashboard" ? <DashboardPage /> : null}
-      {autoSlug ? <ShowcasePage slug={autoSlug} /> : null}
-      {path === "/portal" ? <PortalAuth /> : null}
-      {path === "/portal/garage" ? <GarageDashboard /> : null}
-      {path !== "/dashboard" &&
-      path !== "/enlaces" &&
-      !path.startsWith("/enlaces/") &&
-      !path.startsWith("/auto/") &&
-      path !== "/portal" &&
-      path !== "/portal/garage" ? <LandingPage /> : null}
+    <Suspense fallback={<RouteLoading />}>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/enlaces/*" element={<EnlacesPage />} />
+        <Route path="/auto/:slug" element={<ShowcaseRoute />} />
+        <Route path="/portal" element={<PortalAuth />} />
+        <Route path="/portal/garage" element={<GarageDashboard />} />
+
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route element={<RequireAdmin />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminOverviewPage />} />
+            <Route path="workshop" element={<WorkshopPage />} />
+            <Route path="orders" element={<OrdersPage />} />
+            <Route path="warranties" element={<WarrantiesPage />} />
+            <Route path="media" element={<MediaPage />} />
+            <Route path="publication" element={<PublicationPage />} />
+            <Route path="analytics" element={<DashboardPage />} />
+          </Route>
+        </Route>
+
+        <Route path="/dashboard" element={<Navigate to="/admin/analytics" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </Suspense>
   );
 }

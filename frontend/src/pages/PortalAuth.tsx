@@ -1,6 +1,6 @@
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
+import { gsap, SplitText, EASE, prefersReducedMotion } from "../lib/motion";
 import {
   authenticateGaragePortal,
   getGarageVehicleContext,
@@ -15,6 +15,7 @@ function readVehicleContext(): string | null {
 
 export default function PortalAuth() {
   const rootRef = useRef<HTMLElement>(null);
+  const inputWrapRef = useRef<HTMLDivElement>(null);
   const [pin, setPin] = useState("");
   const [vehicleId, setVehicleId] = useState<string | null>(() => readVehicleContext());
   const [error, setError] = useState<string | null>(null);
@@ -31,15 +32,50 @@ export default function PortalAuth() {
 
   useEffect(() => {
     if (!rootRef.current) return;
+    if (prefersReducedMotion()) {
+      gsap.set([".portal-reveal", ".portal-title"], { opacity: 1, y: 0 });
+      return;
+    }
     const ctx = gsap.context(() => {
+      gsap.set(".portal-title", { opacity: 0 });
       gsap.fromTo(
         ".portal-reveal",
         { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, duration: 0.9, ease: "power4.out", stagger: 0.08 },
+        { opacity: 1, y: 0, duration: 0.9, ease: EASE.text, stagger: 0.08 },
       );
+      const titleEl = rootRef.current?.querySelector<HTMLElement>(".portal-title");
+      if (titleEl) {
+        document.fonts.ready.then(() => {
+          if (!titleEl.isConnected) return;
+          SplitText.create(titleEl, {
+            type: "chars",
+            mask: "chars",
+            autoSplit: true,
+            onSplit(self) {
+              gsap.set(titleEl, { opacity: 1 });
+              return gsap.from(self.chars, {
+                yPercent: 115,
+                duration: 1,
+                stagger: 0.05,
+                delay: 0.15,
+                ease: EASE.text,
+              });
+            },
+          });
+        });
+      }
     }, rootRef);
     return () => ctx.revert();
   }, []);
+
+  useEffect(() => {
+    if (!error || prefersReducedMotion() || !inputWrapRef.current) return;
+    gsap.fromTo(
+      inputWrapRef.current,
+      { x: -5 },
+      { x: 0, duration: 0.4, ease: "elastic.out(1.1, 0.35)" },
+    );
+  }, [error]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -77,23 +113,26 @@ export default function PortalAuth() {
         <div className="portal-reveal mx-auto mb-8 flex h-16 w-16 items-center justify-center border border-white/10 bg-[#0a0a0a] text-[#d8d8d8]">
           <LockKeyhole size={22} strokeWidth={1.45} />
         </div>
-        <p className="portal-reveal mb-4 text-[10px] font-medium uppercase tracking-[0.32em] text-[#707070]">
-          7F Digital Garage
+        <p className="portal-reveal mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-[#707070]">
+          Access / PIN — 7F Garage
         </p>
-        <h1 className="portal-reveal mb-10 text-[clamp(2.9rem,11vw,6rem)] font-light leading-none tracking-[-0.07em]">
+        <h1 className="portal-title mb-10 text-[clamp(2.9rem,11vw,6rem)] font-light leading-none tracking-[-0.07em]">
           Portal
         </h1>
 
-        <input
-          autoFocus
-          inputMode="text"
-          value={pin}
-          onChange={(event) => setPin(event.target.value.toUpperCase())}
-          maxLength={12}
-          aria-label="PIN de acceso"
-          className="portal-reveal focus-ring h-16 w-full border border-white/10 bg-black/40 px-5 text-center text-[22px] font-medium uppercase tracking-[0.42em] text-[#f2f2f2] outline-none transition-colors placeholder:text-[#3a3a3a] hover:border-white/18"
-          placeholder="PIN"
-        />
+        <div ref={inputWrapRef} className="portal-reveal relative">
+          <input
+            autoFocus
+            inputMode="text"
+            value={pin}
+            onChange={(event) => setPin(event.target.value.toUpperCase())}
+            maxLength={12}
+            aria-label="PIN de acceso"
+            className="focus-ring h-16 w-full border border-white/10 bg-black/40 px-5 text-center text-[22px] font-medium uppercase tracking-[0.42em] text-[#f2f2f2] outline-none transition-colors placeholder:text-[#3a3a3a] hover:border-white/18"
+            placeholder="PIN"
+          />
+          {submitting ? <span className="scan-underline" aria-hidden="true" /> : null}
+        </div>
 
         {error ? (
           <p className="portal-reveal mt-5 text-[13px] text-red-300">{error}</p>

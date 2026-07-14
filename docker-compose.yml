@@ -56,6 +56,17 @@ services:
       TRACKING_ANALYTICS_CAMPAIGNS: ${TRACKING_ANALYTICS_CAMPAIGNS:-qr_general}
       TRACKING_WHATSAPP_URL: ${TRACKING_WHATSAPP_URL:-https://wa.me/5215637940104?text=Hola%207Fitment%2C%20quiero%20cotizar%20un%20proyecto%20para%20mi%20auto}
       TRACKING_INSTAGRAM_URL: ${TRACKING_INSTAGRAM_URL:-https://www.instagram.com/7fitment/}
+      PORTAL_TOKEN_SECRET: ${PORTAL_TOKEN_SECRET:-${POSTGRES_PASSWORD}}
+      PORTAL_TOKEN_TTL_SECONDS: ${PORTAL_TOKEN_TTL_SECONDS:-1800}
+      MEDIA_TOKEN_TTL_SECONDS: ${MEDIA_TOKEN_TTL_SECONDS:-1800}
+      MEDIA_ROOT: /srv/7fitment-media
+      MEDIA_MAX_UPLOAD_MB: ${MEDIA_MAX_UPLOAD_MB:-250}
+      RAW_ANALYTICS_RETENTION_DAYS: ${RAW_ANALYTICS_RETENTION_DAYS:-365}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+      ADMIN_COOKIE_SECURE: ${ADMIN_COOKIE_SECURE:-true}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+    volumes:
+      - media_data:/srv/7fitment-media
     # ports:
       # - "8000:8000"
     networks:
@@ -77,6 +88,47 @@ services:
       - traefik.http.routers.qrhub-api.priority=110
       - traefik.http.routers.qrhub-api.service=qrhub-backend
 
+  qrhub_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: qrhub_worker
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    healthcheck:
+      disable: true
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      MEDIA_ROOT: /srv/7fitment-media
+      RAW_ANALYTICS_RETENTION_DAYS: ${RAW_ANALYTICS_RETENTION_DAYS:-365}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+    volumes:
+      - media_data:/srv/7fitment-media
+    networks:
+      - qrhub_net
+    depends_on:
+      db:
+        condition: service_healthy
+
+  qrhub_backup:
+    image: postgres:15-alpine
+    container_name: qrhub_backup
+    restart: unless-stopped
+    command: ["sh", "-c", "while true; do sh /usr/local/bin/backup.sh; sleep 86400; done"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./ops/backup.sh:/usr/local/bin/backup.sh:ro
+      - media_data:/media:ro
+      - backup_data:/backups
+    networks:
+      - qrhub_net
+    depends_on:
+      db:
+        condition: service_healthy
+
   # ---------------------------------------------------------------------------
   # frontend - Vite + React + Tailwind CSS v4, served by Nginx on port 3000.
   # VITE_API_URL must point to the publicly reachable backend URL.
@@ -93,6 +145,8 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+    volumes:
+      - media_data:/srv/media:ro
    # ports:
     #  - "3000:3000"
     networks:
@@ -140,6 +194,10 @@ volumes:
   postgres_data:
     driver: local
   metabase_data:
+    driver: local
+  media_data:
+    driver: local
+  backup_data:
     driver: local
 
 # =============================================================================

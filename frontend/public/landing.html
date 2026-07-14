@@ -34,7 +34,7 @@
      RESET / BASE
      ============================================ */
   *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; overflow-x: clip; }
   body {
     margin: 0;
     background: var(--bg-1);
@@ -44,12 +44,21 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
+  /* Lenis smooth scroll */
+  html.lenis, html.lenis body { height: auto; }
+  .lenis.lenis-smooth { scroll-behavior: auto !important; }
+  .lenis.lenis-stopped { overflow: hidden; }
   img, svg, video { display: block; max-width: 100%; }
   a { color: inherit; text-decoration: none; }
   button { font: inherit; cursor: pointer; }
   ::selection { background: #fff; color: #000; }
+  .media-fade {
+    opacity: 0;
+    transition: opacity 0.8s var(--ease), filter 0.8s var(--ease);
+  }
+  .media-fade.is-loaded { opacity: 1; }
 
   /* ============================================
      PRELOADER
@@ -77,6 +86,27 @@
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
+  }
+  .preloader-readout {
+    position: absolute;
+    left: var(--pad-x);
+    bottom: 28px;
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .preloader-line {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + clamp(76px, 11vw, 132px));
+    width: clamp(120px, 16vw, 200px);
+    height: 1px;
+    background: rgba(255,255,255,0.7);
+    transform: translateX(-50%) scaleX(0);
+    transform-origin: center;
   }
   /* lock body scroll while preloader is up */
   body.preloading { overflow: hidden; }
@@ -235,6 +265,17 @@
     -webkit-backdrop-filter: blur(12px);
     border-bottom-color: rgba(255,255,255,0.04);
   }
+  .nav-progress {
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 100%;
+    height: 1px;
+    background: rgba(242,242,242,0.55);
+    transform: scaleX(0);
+    transform-origin: left center;
+    pointer-events: none;
+  }
   .nav-inner {
     width: 100%;
     max-width: var(--max);
@@ -322,6 +363,11 @@
     transition: transform 0.5s var(--ease);
   }
   .mobile-menu.open { transform: translateY(0); }
+  /* when GSAP drives the menu (clip-path timeline), neutralize the CSS transition */
+  .mobile-menu.gsap-driven {
+    transform: none;
+    transition: none;
+  }
   .mobile-menu-top {
     display: flex; justify-content: space-between; align-items: center;
     height: 48px;
@@ -372,19 +418,16 @@
     opacity: 0;
     transform: translateY(50px);
     transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
-    will-change: opacity, transform;
   }
   .reveal-left {
     opacity: 0;
     transform: translateX(-30px);
     transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
-    will-change: opacity, transform;
   }
   .reveal-right {
     opacity: 0;
     transform: translateX(30px);
     transition: opacity 0.9s var(--ease), transform 0.9s var(--ease);
-    will-change: opacity, transform;
   }
   .reveal.in, .reveal-left.in, .reveal-right.in {
     opacity: 1;
@@ -433,6 +476,10 @@
     transform: translate3d(0, 115%, 0);
     will-change: opacity, transform;
   }
+  .split-unit.is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
   .split-space {
     display: inline-block;
     width: 0.24em;
@@ -449,7 +496,8 @@
     line-height: 1.08;
     padding-bottom: 0.08em;
   }
-  .premium-word {
+  .premium-word,
+  .premium-letter {
     display: inline-block;
     opacity: 0;
     transform: translate3d(0, 110%, 0);
@@ -459,10 +507,12 @@
     display: inline-block;
     width: 0.24em;
   }
+  .premium-source-line { display: block; }
 
   @media (prefers-reduced-motion: reduce) {
     .reveal, .reveal-left, .reveal-right { opacity: 1; transform: none; transition: none; }
-    .hero-in, .split-unit, .premium-word { opacity: 1; transform: none; animation: none; transition: none; }
+    .hero-in, .split-unit, .premium-word, .premium-letter { opacity: 1; transform: none; animation: none; transition: none; }
+    #hero-title { visibility: visible; }
     .preloader { display: none; }
     html { scroll-behavior: auto; }
   }
@@ -513,6 +563,26 @@
   .hero-media .ph-tag {
     opacity: 0.28;
   }
+  .hero-poster,
+  .hero-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    object-position: center 48%;
+    filter: saturate(0.82) contrast(1.12) brightness(0.55);
+  }
+  .hero-poster {
+    z-index: 0;
+    transform: scale(1.02);
+  }
+  .hero-video {
+    z-index: 1;
+    transform: scale(1.04);
+    will-change: opacity, transform;
+  }
   .hero-media::before {
     content: "";
     position: absolute; inset: 0;
@@ -530,6 +600,44 @@
       linear-gradient(180deg, rgba(5,5,5,0.10), rgba(5,5,5,0.72));
     z-index: 3;
   }
+  .hero-grain {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .hero-hud {
+    position: absolute;
+    inset: clamp(86px, 10vw, 110px) clamp(18px, 3vw, 36px) clamp(18px, 3vw, 36px);
+    z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .hud-corner {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 0 solid rgba(242,242,242,0.32);
+  }
+  .hud-corner.tl { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+  .hud-corner.tr { top: 0; right: 0; border-top-width: 1px; border-right-width: 1px; }
+  .hud-corner.bl { bottom: 0; left: 0; border-bottom-width: 1px; border-left-width: 1px; }
+  .hud-corner.br { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+  .hud-readout {
+    position: absolute;
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+  .hud-readout.tl { top: 3px; left: 28px; }
+  .hud-readout.br { bottom: 3px; right: 28px; }
   .hero-content {
     position: relative;
     z-index: 4;
@@ -545,6 +653,9 @@
     line-height: 0.82;
     letter-spacing: -0.055em;
   }
+  /* Hide hero title until its entrance fires (kills FOUT between preloader wipe and char rise).
+     Restored by JS in every fallback path, and by the reduced-motion block below. */
+  #hero-title { visibility: hidden; }
   .hero-content .body { max-width: 620px; }
   .hero-scroll-hint {
     position: absolute;
@@ -665,6 +776,20 @@
     transform: scale(1.08);
     will-change: transform;
   }
+  .aura-card picture,
+  .pf-media {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .aura-sheen {
+    position: absolute;
+    inset: -8% -16%;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.13) 50%, transparent 60%);
+    transform: translateX(-130%) skewX(-8deg);
+  }
   .aura-card figcaption {
     position: absolute;
     left: 24px;
@@ -742,12 +867,25 @@
     background-image:
       repeating-linear-gradient(135deg, transparent 0 18px, rgba(255,255,255,0.02) 18px 19px);
   }
-  .ph::after {
-    content: "";
-    position: absolute; left: 16px; top: 16px;
-    width: 12px; height: 12px;
-    border-left: 1px solid var(--text-3);
-    border-top: 1px solid var(--text-3);
+  .ph-c {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 0 solid var(--text-3);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+  .ph-c.tl { top: 16px; left: 16px; border-top-width: 1px; border-left-width: 1px; }
+  .ph-c.tr { top: 16px; right: 16px; border-top-width: 1px; border-right-width: 1px; }
+  .ph-c.bl { bottom: 16px; left: 16px; border-bottom-width: 1px; border-left-width: 1px; }
+  .ph-c.br { bottom: 16px; right: 16px; border-bottom-width: 1px; border-right-width: 1px; }
+  .ph-scan {
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+    opacity: 0;
+    pointer-events: none;
   }
   .ph .ph-tag {
     position: relative;
@@ -779,15 +917,138 @@
      SECTION 2 — INTRO / MANIFESTO
      ============================================ */
   .manifesto {
-    padding: var(--sec-y) 0;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: clamp(980px, 118svh, 1240px);
+    padding: clamp(128px, 15vh, 176px) 0;
     text-align: center;
+    display: flex;
+    align-items: center;
+    background: #050505;
   }
   .manifesto .container {
+    position: relative;
+    z-index: 2;
+    max-width: 1180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(64px, 8vw, 96px);
+  }
+  .manifesto-core {
+    width: 100%;
     max-width: 880px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 36px;
+  }
+  .manifesto-line { display: block; }
+  .manifesto-education,
+  .product-education {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1.7fr);
+    text-align: left;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .product-education {
+    margin-bottom: clamp(96px, 12vw, 160px);
+    background: rgba(255,255,255,0.012);
+  }
+  .education-intro {
+    padding: 48px clamp(28px, 4vw, 56px) 48px 0;
+  }
+  .product-education .education-intro {
+    padding-left: clamp(28px, 3vw, 44px);
+  }
+  .education-question {
+    max-width: 360px;
+    margin: 18px 0 22px;
+    font-size: clamp(36px, 4.4vw, 62px);
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+  }
+  .education-answer {
+    max-width: 420px;
+    color: #888;
+    font-size: 15px;
+    line-height: 1.72;
+  }
+  .education-answer strong {
+    color: #d8d8d8;
+    font-weight: 500;
+  }
+  .education-link {
+    width: fit-content;
+    margin-top: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #f2f2f2;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .education-link svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.35s var(--ease);
+  }
+  .education-link:hover svg,
+  .education-link:focus-visible svg { transform: translateX(4px); }
+  .education-points {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .education-point {
+    min-width: 0;
+    padding: 48px clamp(22px, 2.5vw, 36px);
+    border-left: 1px solid rgba(255,255,255,0.08);
+  }
+  .education-point dt {
+    margin-bottom: 52px;
+    color: #696969;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .education-point dd { margin: 0; }
+  .education-point strong {
+    display: block;
+    margin-bottom: 14px;
+    color: #e7e7e7;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.035em;
+  }
+  .education-point span {
+    display: block;
+    color: #777;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+  .manifesto-paths {
+    position: absolute;
+    inset: -10% -8%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .manifesto-paths::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at 50% 48%, rgba(5,5,5,0.02), rgba(5,5,5,0.46) 76%),
+      linear-gradient(90deg, #050505, transparent 18%, transparent 82%, #050505);
   }
 
   /* ============================================
@@ -818,6 +1079,16 @@
     width: 100%; height: 100%;
     border: none;
     filter: saturate(0.4) brightness(0.7);
+  }
+  .fork-card .fork-media img {
+    position: absolute;
+    left: 0;
+    top: -5%;
+    width: 100%;
+    height: 110%;
+    max-width: none;
+    object-fit: cover;
+    filter: saturate(0.55) contrast(1.06) brightness(0.6);
   }
   .fork-card .fork-media::after {
     content: "";
@@ -885,6 +1156,7 @@
   }
   .detail-head .h1 { font-size: clamp(36px, 5.5vw, 72px); }
   .detail-head .label { color: var(--text-2); }
+  #proteccion .detail-head { margin-bottom: clamp(56px, 7vw, 88px); }
   .detail-block {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -955,6 +1227,16 @@
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
+  .steps-progress {
+    display: block;
+    height: 1px;
+    background: rgba(242,242,242,0.4);
+    transform: scaleX(0);
+    transform-origin: left center;
+    position: relative;
+    z-index: 1;
+    margin-bottom: -1px;
+  }
   .step {
     padding: 48px 32px;
     background: var(--bg-1);
@@ -962,14 +1244,24 @@
     flex-direction: column;
     gap: 18px;
     min-height: 280px;
+    transition: background 0.4s var(--ease);
   }
+  .step:hover { background: var(--bg-2); }
   .step-num {
     font-size: 48px;
     font-weight: 300;
     color: var(--text-3);
     letter-spacing: -0.02em;
     line-height: 1;
+    transition: color 0.4s var(--ease);
   }
+  .step:hover .step-num { color: var(--text-2); }
+  .step-num-mask {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+  }
+  .step-num-val { display: inline-block; }
   .step-title {
     font-size: 20px;
     font-weight: 500;
@@ -1003,18 +1295,53 @@
     grid-template-columns: repeat(6, 1fr);
     grid-auto-rows: 160px;
     gap: 16px;
+    counter-reset: pf;
   }
   .pf-item {
     position: relative;
     overflow: hidden;
     border: 1px solid var(--border);
+    counter-increment: pf;
+  }
+  .pf-item::before {
+    content: counter(pf, decimal-leading-zero) " — 08";
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    z-index: 2;
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: rgba(242,242,242,0.42);
+    transition: color 0.4s var(--ease);
+    pointer-events: none;
+  }
+  .pf-item:hover::before { color: rgba(242,242,242,0.92); }
+  @media (min-width: 720px) {
+    .pf-item .pf-media {
+      height: 112%;
+      margin-top: -6%;
+    }
   }
   .pf-item .ph {
     width: 100%; height: 100%;
     border: none;
     transition: transform 0.8s var(--ease);
   }
-  .pf-item:hover .ph { transform: scale(1.04); }
+  .pf-item .pf-media img {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    filter: saturate(0.78) contrast(1.08) brightness(0.78);
+    transition: transform 0.8s var(--ease), filter 0.8s var(--ease), opacity 0.8s var(--ease);
+  }
+  .pf-item:hover .ph,
+  .pf-item:hover .pf-media img {
+    transform: scale(1.04);
+    filter: saturate(0.96) contrast(1.1) brightness(0.88);
+  }
   .pf-item .pf-overlay {
     position: absolute; inset: 0;
     background: rgba(5,5,5,0.55);
@@ -1025,7 +1352,6 @@
     text-align: center;
   }
   .pf-item:hover .pf-overlay { opacity: 1; }
-  .pf-item:hover .ph { transform: scale(1.03); }
   .pf-item .pf-tag {
     color: var(--text-1);
     font-size: 15px;
@@ -1098,6 +1424,21 @@
     z-index: 0;
     opacity: 1;
   }
+  /* CSS-only scanline for small viewports where the canvas loop never starts */
+  .scan-fallback {
+    display: none;
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 1px;
+    z-index: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: scanFallback 6s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  @keyframes scanFallback {
+    from { transform: translateY(12vh); }
+    to { transform: translateY(64vh); }
+  }
   .tech-signal .container {
     position: relative;
     z-index: 2;
@@ -1148,7 +1489,29 @@
   .footer {
     background: var(--bg-1);
     border-top: 1px solid #1A1A1A;
-    padding: 64px 0 32px;
+    padding: 40px 0 32px;
+    overflow: clip;
+  }
+  .footer-wordmark {
+    font-size: clamp(72px, 17vw, 250px);
+    font-weight: 700;
+    line-height: 0.82;
+    letter-spacing: -0.05em;
+    text-align: center;
+    white-space: nowrap;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255,255,255,0.13);
+    user-select: none;
+    pointer-events: none;
+    margin-bottom: clamp(40px, 6vw, 88px);
+  }
+  .footer-stamp {
+    font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-3);
   }
   .footer-grid {
     display: grid;
@@ -1220,6 +1583,11 @@
     .tech-signal .container { grid-template-columns: 1fr; }
     .signal-readout { justify-self: start; }
     .footer-grid { grid-template-columns: 1fr 1fr; }
+    .manifesto-education,
+    .product-education { grid-template-columns: 1fr; }
+    .education-intro { padding-right: 0; }
+    .product-education .education-intro { padding-right: clamp(28px, 3vw, 44px); }
+    .education-points { border-top: 1px solid rgba(255,255,255,0.08); }
   }
   @media (max-width: 720px) {
     .nav-links { display: none; }
@@ -1252,6 +1620,8 @@
     .aura-card.two { height: 260px; }
     .aura-card.three { height: 280px; }
     .aura-readout { display: none; }
+    .hero-poster,
+    .hero-video { object-position: center center; }
     .steps { grid-template-columns: 1fr; }
     .step { min-height: auto; }
     .portfolio-grid {
@@ -1260,13 +1630,72 @@
     }
     .pf-1, .pf-6, .pf-8 { grid-column: span 2; grid-row: span 2; }
     .pf-5 { grid-row: span 2; }
-    .hero-content .display { font-size: clamp(58px, 19vw, 104px); }
+    .hero-content { max-width: calc(100vw - (var(--pad-x) * 2)); }
+    .hero-content .body {
+      width: 100%;
+      max-width: 320px;
+      min-width: 0;
+      font-size: 15px;
+    }
+    .hero-content .display {
+      max-width: 100%;
+      font-size: clamp(50px, 16vw, 78px);
+      letter-spacing: -0.065em;
+      white-space: nowrap;
+    }
     .tech-signal { min-height: 760px; }
     .tech-signal .container { min-height: 620px; }
     .tech-copy .h1 { font-size: clamp(34px, 12vw, 54px); }
-    .signal-readout { width: 100%; }
+    .signal-readout {
+      width: 100%;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background: rgba(10,10,10,0.92);
+    }
+    .tech-canvas { display: none; }
+    .scan-fallback { display: block; }
+    .hero-grain { display: none; }
+    .aura-sheen { display: none; }
+    .manifesto {
+      min-height: auto;
+      padding: 112px 0 96px;
+    }
+    .manifesto-paths [data-background-paths-stage="true"] {
+      transform: rotate(-20deg) scale(1.12);
+      transform-origin: 50% 50%;
+    }
+    .manifesto .container { gap: 64px; }
+    .manifesto-core { gap: 28px; }
+    .education-intro,
+    .product-education .education-intro { padding: 36px 0 40px; }
+    .education-question {
+      max-width: 310px;
+      font-size: clamp(38px, 13vw, 54px);
+    }
+    .education-points { grid-template-columns: 1fr; }
+    .education-point {
+      padding: 30px 0;
+      border-left: 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .education-point dt { margin-bottom: 22px; }
+    .hud-readout.tl { left: 24px; }
+    .hud-readout.br { right: 24px; }
     .footer-grid { grid-template-columns: 1fr; gap: 40px; }
     .footer-bottom { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-video { display: none; }
+    .media-fade { opacity: 1; transition: none; }
+    .hero-hud { opacity: 1; }
+    .hero-grain,
+    .aura-sheen,
+    .ph-scan,
+    .scan-fallback { display: none; }
+    .nav-progress,
+    .steps-progress { transform: none; }
+    .preloader-line,
+    .preloader-readout { display: none; }
   }
 </style>
 </head>
@@ -1275,6 +1704,8 @@
 <!-- ============= PRELOADER ============= -->
 <div class="preloader" id="preloader" aria-hidden="true">
   <img class="preloader-mark" src="assets/7fitment-logo.png" alt="7Fitment" />
+  <span class="preloader-line" id="preloaderLine"></span>
+  <span class="preloader-readout" id="preloaderReadout">LOADING &mdash; 000</span>
 </div>
 
 <!-- ============= PRECISION GRID BG ============= -->
@@ -1301,6 +1732,7 @@
       <span></span>
     </button>
   </div>
+  <span class="nav-progress" id="navProgress" aria-hidden="true"></span>
 </header>
 
 <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
@@ -1324,14 +1756,36 @@
 <!-- ============= 1. HERO ============= -->
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero-media" aria-hidden="true">
-    <div class="ph ph-cover">
-      <span class="ph-tag"><b>V-001 / H-001</b>Hero placeholder premium</span>
-    </div>
+    <img
+      class="hero-poster media-fade"
+      src="/assets/media/hero/7fitment-hero-poster.webp"
+      alt=""
+      fetchpriority="high"
+      decoding="async"
+    />
+    <video
+      class="hero-video media-fade"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="metadata"
+      poster="/assets/media/hero/7fitment-hero-poster.webp"
+    >
+      <source src="/assets/media/hero/7fitment-hero.webm" type="video/webm" />
+      <source src="/assets/media/hero/7fitment-hero.mp4" type="video/mp4" />
+    </video>
+    <i class="hero-grain" aria-hidden="true"></i>
+  </div>
+  <div class="hero-hud" id="heroHud" aria-hidden="true">
+    <i class="hud-corner tl"></i><i class="hud-corner tr"></i><i class="hud-corner bl"></i><i class="hud-corner br"></i>
+    <span class="hud-readout tl">SAT / EDOMEX &mdash; 19.50&deg;N 99.23&deg;W</span>
+    <span class="hud-readout br">7F &mdash; FINISH LAB</span>
   </div>
   <div class="hero-content">
-    <span class="label hero-in h-1">7Fitment — Satélite, Edo. Méx.</span>
+    <span class="label hero-in h-1" data-site-location>7Fitment — Satélite, Edo. Méx.</span>
     <h1 id="hero-title" class="display hero-in h-2 split-source" data-split="letters">7FITMENT</h1>
-    <p class="body hero-in h-3 split-source" data-split="words">Personalización y protección automotriz de alto nivel. Transformamos vehículos con procesos especializados y materiales premium.</p>
+    <p class="body hero-in h-3 split-source" data-split="words" data-site-description>Personalización y protección automotriz de alto nivel. Transformamos vehículos con procesos especializados y materiales premium.</p>
   </div>
   <span class="hero-scroll-hint" aria-hidden="true">Scroll</span>
 </section>
@@ -1351,28 +1805,78 @@
     </div>
     <div class="aura-gallery" aria-label="Galería premium con parallax">
       <figure class="aura-card one" data-aura-speed="0.34">
-        <img src="https://images.pexels.com/photos/8105778/pexels-photo-8105778.jpeg?auto=compress&cs=tinysrgb&w=2200" alt="Auto deportivo negro en garage moderno" />
-        <figcaption><span>01 / Finish</span>PPF Mate</figcaption>
+        <picture>
+          <source
+            type="image/webp"
+            srcset="/assets/media/work/aura-r8-plata-mate-sm.webp 900w, /assets/media/work/aura-r8-plata-mate-lg.webp 1600w"
+            sizes="(max-width: 720px) 100vw, 62vw"
+          />
+          <img class="media-fade" src="/assets/media/work/aura-r8-plata-mate-lg.webp" alt="Audi R8 plata mate dentro del estudio 7Fitment" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption><span>01 / Finish</span>R8 Plata Mate</figcaption>
       </figure>
       <figure class="aura-card two" data-aura-speed="-0.22">
-        <img src="https://images.pexels.com/photos/358070/pexels-photo-358070.jpeg?auto=compress&cs=tinysrgb&w=1800" alt="Auto premium sobre carretera" />
-        <figcaption><span>02 / Motion</span>Wrap Satinado</figcaption>
+        <picture>
+          <source
+            type="image/webp"
+            srcset="/assets/media/work/aura-corvette-purple-sm.webp 900w, /assets/media/work/aura-corvette-purple-lg.webp 1600w"
+            sizes="(max-width: 720px) 100vw, 44vw"
+          />
+          <img class="media-fade" src="/assets/media/work/aura-corvette-purple-lg.webp" alt="Corvette purpura con wrap satinado en estudio 7Fitment" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption><span>02 / Motion</span>Corvette Purpura</figcaption>
       </figure>
       <figure class="aura-card three" data-aura-speed="0.18">
-        <img src="https://images.pexels.com/photos/170811/pexels-photo-170811.jpeg?auto=compress&cs=tinysrgb&w=1800" alt="Detalle frontal de vehículo de lujo" />
-        <figcaption><span>03 / Protection</span>Cerámico</figcaption>
+        <picture>
+          <source
+            type="image/webp"
+            srcset="/assets/media/work/aura-porsche-yellow-sm.webp 900w, /assets/media/work/aura-porsche-yellow-lg.webp 1600w"
+            sizes="(max-width: 720px) 100vw, 42vw"
+          />
+          <img class="media-fade" src="/assets/media/work/aura-porsche-yellow-lg.webp" alt="Porsche amarillo con acabado premium en estudio 7Fitment" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption><span>03 / Protection</span>Porsche Yellow</figcaption>
       </figure>
     </div>
   </div>
 </section>
 
 <!-- ============= 3. MANIFESTO ============= -->
-<section class="manifesto">
+<section class="manifesto" id="filosofia">
+  <div class="manifesto-paths" id="manifestoPaths" aria-hidden="true"></div>
   <div class="container">
-    <span class="section-rule reveal" aria-hidden="true"></span>
-    <span class="label reveal" data-delay="1">— Filosofía</span>
-    <h2 class="h1 reveal" data-delay="2">Más que un taller.<br/>Un laboratorio de acabados.</h2>
-    <p class="body reveal" data-delay="3" style="max-width: 640px;">En 7Fitment trabajamos cada vehículo como un proyecto único, cuidando cada detalle desde la preparación hasta la entrega final. No hacemos trabajos rápidos. Hacemos trabajos que duran.</p>
+    <div class="manifesto-core">
+      <span class="section-rule reveal" aria-hidden="true"></span>
+      <span class="label reveal" data-delay="1">— Filosofía</span>
+      <h2 class="h1 reveal" data-delay="2"><span class="manifesto-line">Más que un taller.</span><span class="manifesto-line">Un laboratorio de acabados.</span></h2>
+      <p class="body reveal" data-delay="3" style="max-width: 640px;">En 7Fitment trabajamos cada vehículo como un proyecto único, cuidando cada detalle desde la preparación hasta la entrega final. No hacemos trabajos rápidos. Hacemos trabajos que duran.</p>
+    </div>
+
+    <div class="manifesto-education">
+      <div class="education-intro reveal-left">
+        <span class="label">Método 7Fitment</span>
+        <h3 class="education-question reveal" data-premium-reveal>La diferencia está en el proceso.</h3>
+        <p class="education-answer">Cada servicio comienza con una lectura precisa del vehículo, no con una solución genérica. <strong>Material, cobertura y ejecución se definen antes de intervenir una sola superficie.</strong></p>
+        <a class="education-link" href="#proceso" aria-label="Conocer el proceso de trabajo de 7Fitment">
+          Conocer el proceso
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+      <dl class="education-points">
+        <div class="education-point reveal" data-delay="1">
+          <dt>01 / Diagnóstico</dt>
+          <dd><strong>Entendemos antes de intervenir.</strong><span>Evaluamos superficie, geometría, uso y objetivo de cada vehículo.</span></dd>
+        </div>
+        <div class="education-point reveal" data-delay="2">
+          <dt>02 / Protocolo</dt>
+          <dd><strong>Cada decisión tiene una razón.</strong><span>Definimos preparación, material y secuencia según el proyecto.</span></dd>
+        </div>
+        <div class="education-point reveal" data-delay="3">
+          <dt>03 / Validación</dt>
+          <dd><strong>La entrega también es parte del trabajo.</strong><span>Revisamos bordes, terminación y acabado bajo luz controlada.</span></dd>
+        </div>
+      </dl>
+    </div>
   </div>
 </section>
 
@@ -1380,15 +1884,13 @@
 <section class="fork" id="servicios" aria-label="Servicios">
   <a href="#personalizacion" class="fork-card">
     <div class="fork-media" aria-hidden="true">
-      <div class="ph ph-cover">
-        <span class="ph-tag"><b>F-001</b>Personalización</span>
-      </div>
+      <img class="media-fade" src="/assets/media/work/aura-r8-plata-mate-lg.webp" alt="" loading="lazy" decoding="async" />
     </div>
     <div class="fork-content">
       <span class="label dot reveal">Personalización</span>
       <h2 class="h1 reveal" data-delay="1">Cambia la apariencia</h2>
       <p class="body reveal" data-delay="2">Cambia completamente la apariencia de tu vehículo con acabados de alto nivel.</p>
-      <ul class="fork-list reveal" data-delay="3">
+      <ul class="fork-list reveal" data-delay="3" data-service-group="personalization">
         <li>Wrap</li>
         <li>PPF Color</li>
         <li>Diseños Personalizados</li>
@@ -1404,15 +1906,13 @@
 
   <a href="#proteccion" class="fork-card">
     <div class="fork-media" aria-hidden="true">
-      <div class="ph ph-cover">
-        <span class="ph-tag"><b>F-002</b>Protección</span>
-      </div>
+      <img class="media-fade" src="/assets/media/work/porsche-yellow-lg.webp" alt="" loading="lazy" decoding="async" />
     </div>
     <div class="fork-content">
       <span class="label dot reveal">Protección</span>
       <h2 class="h1 reveal" data-delay="1">Preserva el valor</h2>
       <p class="body reveal" data-delay="2">Protege la pintura original contra desgaste, rayones e impactos.</p>
-      <ul class="fork-list reveal" data-delay="3">
+      <ul class="fork-list reveal" data-delay="3" data-service-group="protection">
         <li>PPF Transparente</li>
         <li>Cerámico</li>
         <li>Corrección de pintura</li>
@@ -1440,6 +1940,8 @@
     <div class="detail-block">
       <div class="detail-media reveal-left">
         <div class="ph">
+          <i class="ph-c tl"></i><i class="ph-c tr"></i><i class="ph-c bl"></i><i class="ph-c br"></i>
+          <i class="ph-scan"></i>
           <span class="ph-tag"><b>P-001</b>Wrap close-up</span>
         </div>
       </div>
@@ -1461,6 +1963,8 @@
     <div class="detail-block reverse">
       <div class="detail-media reveal-right">
         <div class="ph">
+          <i class="ph-c tl"></i><i class="ph-c tr"></i><i class="ph-c bl"></i><i class="ph-c br"></i>
+          <i class="ph-scan"></i>
           <span class="ph-tag"><b>P-002</b>Diseño personalizado completo</span>
         </div>
       </div>
@@ -1481,6 +1985,8 @@
     <div class="detail-block">
       <div class="detail-media reveal-left">
         <div class="ph">
+          <i class="ph-c tl"></i><i class="ph-c tr"></i><i class="ph-c bl"></i><i class="ph-c br"></i>
+          <i class="ph-scan"></i>
           <span class="ph-tag"><b>P-003</b>PPF Color</span>
         </div>
       </div>
@@ -1508,10 +2014,38 @@
       <h2 id="proteccion-title" class="h1 reveal" data-delay="2">Cuida lo que ya tienes. A largo plazo.</h2>
     </header>
 
+    <div class="product-education">
+      <div class="education-intro reveal-left">
+        <span class="label">PPF / Paint Protection Film</span>
+        <h3 class="education-question reveal" data-premium-reveal>¿Qué es PPF?</h3>
+        <p class="education-answer">Es una película transparente de poliuretano que crea una barrera física sobre la pintura. <strong>En 7Fitment diseñamos la cobertura para la geometría de cada auto, cuidamos los bordes y revisamos el acabado bajo luz controlada.</strong></p>
+        <a class="education-link" href="#ppf-transparente" aria-label="Ver las soluciones PPF de 7Fitment">
+          Ver soluciones PPF
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+      <dl class="education-points">
+        <div class="education-point reveal" data-delay="1">
+          <dt>01 / Invisible</dt>
+          <dd><strong>Protege sin cambiar su identidad.</strong><span>Conserva el color, el brillo y las líneas originales del vehículo.</span></dd>
+        </div>
+        <div class="education-point reveal" data-delay="2">
+          <dt>02 / Impactos</dt>
+          <dd><strong>Recibe el desgaste antes que la pintura.</strong><span>Ayuda frente a piedras, micro-rayones y contaminantes del camino.</span></dd>
+        </div>
+        <div class="education-point reveal" data-delay="3">
+          <dt>03 / Valor</dt>
+          <dd><strong>Preserva lo que hace valioso al auto.</strong><span>Una barrera reversible que ayuda a mantener la pintura de fábrica.</span></dd>
+        </div>
+      </dl>
+    </div>
+
     <!-- 5.1 PPF Transparente -->
-    <div class="detail-block">
+    <div class="detail-block" id="ppf-transparente">
       <div class="detail-media reveal-left">
         <div class="ph">
+          <i class="ph-c tl"></i><i class="ph-c tr"></i><i class="ph-c bl"></i><i class="ph-c br"></i>
+          <i class="ph-scan"></i>
           <span class="ph-tag"><b>R-001</b>PPF — instalación / water beading</span>
         </div>
       </div>
@@ -1532,6 +2066,8 @@
     <div class="detail-block reverse">
       <div class="detail-media reveal-right">
         <div class="ph">
+          <i class="ph-c tl"></i><i class="ph-c tr"></i><i class="ph-c bl"></i><i class="ph-c br"></i>
+          <i class="ph-scan"></i>
           <span class="ph-tag"><b>R-002</b>Cerámico — hidrofóbico</span>
         </div>
       </div>
@@ -1551,6 +2087,8 @@
     <div class="detail-block">
       <div class="detail-media reveal-left">
         <div class="ph">
+          <i class="ph-c tl"></i><i class="ph-c tr"></i><i class="ph-c bl"></i><i class="ph-c br"></i>
+          <i class="ph-scan"></i>
           <span class="ph-tag"><b>R-003</b>Corrección de pintura</span>
         </div>
       </div>
@@ -1577,24 +2115,25 @@
       <h2 id="proceso-title" class="h1 reveal" data-delay="2">Proceso diseñado para el detalle</h2>
       <p class="body reveal" data-delay="3" style="max-width: 560px;">Cada etapa está pensada para garantizar un acabado de alto nivel. Sin atajos.</p>
     </header>
+    <span class="steps-progress" id="stepsProgress" aria-hidden="true"></span>
     <ol class="steps" role="list">
       <li class="step reveal">
-        <span class="step-num">01</span>
+        <span class="step-num"><span class="step-num-mask"><span class="step-num-val">01</span></span></span>
         <h3 class="step-title">Diagnóstico</h3>
         <p class="step-body">Evaluamos el estado del vehículo y definimos el alcance exacto.</p>
       </li>
       <li class="step reveal" data-delay="1">
-        <span class="step-num">02</span>
+        <span class="step-num"><span class="step-num-mask"><span class="step-num-val">02</span></span></span>
         <h3 class="step-title">Preparación</h3>
         <p class="step-body">Lavado químico, descontaminación y desmontaje de piezas si es necesario.</p>
       </li>
       <li class="step reveal" data-delay="2">
-        <span class="step-num">03</span>
+        <span class="step-num"><span class="step-num-mask"><span class="step-num-val">03</span></span></span>
         <h3 class="step-title">Instalación</h3>
         <p class="step-body">Aplicación especializada en ambiente controlado.</p>
       </li>
       <li class="step reveal" data-delay="3">
-        <span class="step-num">04</span>
+        <span class="step-num"><span class="step-num-mask"><span class="step-num-val">04</span></span></span>
         <h3 class="step-title">Revisión</h3>
         <p class="step-body">Inspección final bajo luz LED antes de la entrega.</p>
       </li>
@@ -1613,36 +2152,60 @@
     </header>
     <div class="portfolio-grid">
       <figure class="pf-item pf-1 reveal">
-        <div class="ph"><span class="ph-tag"><b>PT-01</b>Wrap completo · 3/4</span></div>
-        <figcaption class="pf-overlay"><span class="pf-tag"><span>Wrap</span>Audi RS — wrap completo</span></figcaption>
+        <picture class="pf-media">
+          <source type="image/webp" srcset="/assets/media/work/r8-plata-mate-sm.webp 900w, /assets/media/work/r8-plata-mate-lg.webp 1600w" sizes="(max-width: 720px) 100vw, 66vw" />
+          <img class="media-fade" src="/assets/media/work/r8-plata-mate-lg.webp" alt="Audi R8 plata mate, wrap completo" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Wrap</span>R8 — plata mate</span></figcaption>
       </figure>
       <figure class="pf-item pf-2 reveal" data-delay="1">
-        <div class="ph"><span class="ph-tag"><b>PT-02</b>Detalle de borde</span></div>
-        <figcaption class="pf-overlay"><span class="pf-tag"><span>Detalle</span>Edge work — manija</span></figcaption>
+        <picture class="pf-media">
+          <source type="image/webp" srcset="/assets/media/work/corvette-purple-sm.webp 900w, /assets/media/work/corvette-purple-lg.webp 1600w" sizes="(max-width: 720px) 50vw, 33vw" />
+          <img class="media-fade" src="/assets/media/work/corvette-purple-lg.webp" alt="Corvette purpura con wrap satinado" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Wrap</span>Corvette — purpura satinado</span></figcaption>
       </figure>
       <figure class="pf-item pf-3 reveal" data-delay="2">
-        <div class="ph"><span class="ph-tag"><b>PT-03</b>PPF brillante</span></div>
-        <figcaption class="pf-overlay"><span class="pf-tag"><span>PPF</span>Porsche 911 — carrocería completa</span></figcaption>
+        <picture class="pf-media">
+          <source type="image/webp" srcset="/assets/media/work/porsche-yellow-sm.webp 900w, /assets/media/work/porsche-yellow-lg.webp 1600w" sizes="(max-width: 720px) 50vw, 33vw" />
+          <img class="media-fade" src="/assets/media/work/porsche-yellow-lg.webp" alt="Porsche amarillo con acabado premium" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>PPF</span>Porsche — proteccion completa</span></figcaption>
       </figure>
       <figure class="pf-item pf-4 reveal">
-        <div class="ph"><span class="ph-tag"><b>PT-04</b>Caliper / rueda</span></div>
-        <figcaption class="pf-overlay"><span class="pf-tag"><span>Detalle</span>Acabado de rueda</span></figcaption>
+        <picture class="pf-media">
+          <source type="image/webp" srcset="/assets/media/work/bmw-x1-nardo-grey-sm.webp 900w, /assets/media/work/bmw-x1-nardo-grey-lg.webp 1600w" sizes="(max-width: 720px) 50vw, 33vw" />
+          <img class="media-fade" src="/assets/media/work/bmw-x1-nardo-grey-lg.webp" alt="BMW X1 nardo grey en estudio 7Fitment" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Wrap</span>BMW X1 — nardo grey</span></figcaption>
       </figure>
       <figure class="pf-item pf-5 reveal" data-delay="1">
-        <div class="ph"><span class="ph-tag"><b>PT-08</b>Cerámico — fondo negro</span></div>
-        <figcaption class="pf-overlay"><span class="pf-tag"><span>Cerámico</span>BMW M3 — brillo extremo</span></figcaption>
+        <picture class="pf-media">
+          <source type="image/webp" srcset="/assets/media/work/corvette-acid-lime-sm.webp 900w, /assets/media/work/corvette-acid-lime-lg.webp 1600w" sizes="(max-width: 720px) 50vw, 33vw" />
+          <img class="media-fade" src="/assets/media/work/corvette-acid-lime-lg.webp" alt="Corvette acid lime mate dentro del estudio" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Custom</span>Corvette — acid lime</span></figcaption>
       </figure>
       <figure class="pf-item pf-6 reveal" data-delay="2">
-        <div class="ph"><span class="ph-tag"><b>PT-05</b>Diseño personalizado</span></div>
-        <figcaption class="pf-overlay"><span class="pf-tag"><span>Custom</span>Audi RS5 — diseño completo</span></figcaption>
+        <picture class="pf-media">
+          <source type="image/webp" srcset="/assets/media/work/bmw-x4-blanco-mate-satin-sm.webp 900w, /assets/media/work/bmw-x4-blanco-mate-satin-lg.webp 1600w" sizes="(max-width: 720px) 100vw, 66vw" />
+          <img class="media-fade" src="/assets/media/work/bmw-x4-blanco-mate-satin-lg.webp" alt="BMW X4 blanco mate satin con wrap" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Wrap</span>BMW X4 — blanco mate satin</span></figcaption>
       </figure>
       <figure class="pf-item pf-7 reveal">
-        <div class="ph"><span class="ph-tag"><b>PT-06</b>Windshield PPF</span></div>
-        <figcaption class="pf-overlay"><span class="pf-tag"><span>PPF</span>Mercedes AMG — parabrisas</span></figcaption>
+        <picture class="pf-media">
+          <source type="image/webp" srcset="/assets/media/work/serie1-sao-paulo-yellow-sm.webp 900w, /assets/media/work/serie1-sao-paulo-yellow-lg.webp 1600w" sizes="(max-width: 720px) 50vw, 33vw" />
+          <img class="media-fade" src="/assets/media/work/serie1-sao-paulo-yellow-lg.webp" alt="BMW Serie 1 Sao Paulo Yellow con acabado wrap" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Wrap</span>Serie 1 — Sao Paulo yellow</span></figcaption>
       </figure>
       <figure class="pf-item pf-8 reveal" data-delay="1">
-        <div class="ph"><span class="ph-tag"><b>PT-07</b>Antes / Después</span></div>
-        <figcaption class="pf-overlay"><span class="pf-tag"><span>Corrección</span>Antes / Después</span></figcaption>
+        <picture class="pf-media">
+          <source type="image/webp" srcset="/assets/media/work/vw-golf-gti-blanco-sm.webp 900w, /assets/media/work/vw-golf-gti-blanco-lg.webp 1600w" sizes="(max-width: 720px) 100vw, 66vw" />
+          <img class="media-fade" src="/assets/media/work/vw-golf-gti-blanco-lg.webp" alt="VW Golf GTI blanco perla con trabajo premium" loading="lazy" decoding="async" width="1200" height="1600" />
+        </picture>
+        <figcaption class="pf-overlay"><span class="pf-tag"><span>Detail</span>Golf GTI — blanco perla</span></figcaption>
       </figure>
     </div>
   </div>
@@ -1651,6 +2214,7 @@
 <!-- ============= 8. TECH SIGNAL ============= -->
 <section class="tech-signal" aria-label="Precisión técnica 7Fitment">
   <canvas class="tech-canvas" id="surfaceScannerCanvas" aria-hidden="true"></canvas>
+  <i class="scan-fallback" aria-hidden="true"></i>
   <div class="container">
     <div class="tech-copy">
       <span class="label reveal">— Diagnóstico visual</span>
@@ -1668,13 +2232,14 @@
 
 <!-- ============= 9. FOOTER ============= -->
 <footer class="footer">
+  <div class="footer-wordmark" id="footerWordmark" aria-hidden="true">7FITMENT</div>
   <div class="container">
     <div class="footer-grid">
       <div>
         <a href="#top" class="brand">
           <img class="brand-logo" src="assets/7fitment-logo.png" alt="7Fitment" />
         </a>
-        <p class="body">Personalización y protección para autos. Satélite, Edo. Méx.</p>
+        <p class="body" data-site-footer>Personalización y protección para autos. Satélite, Edo. Méx.</p>
       </div>
       <div>
         <h4>Navegación</h4>
@@ -1688,25 +2253,79 @@
       <div>
         <h4>Síguenos</h4>
         <ul>
-          <li><a href="https://www.instagram.com/7fitment/" target="_blank" rel="noreferrer">Instagram · @7fitment</a></li>
+          <li><a href="https://www.instagram.com/7fitment/" target="_blank" rel="noreferrer" data-site-instagram>Instagram · @7fitment</a></li>
           <li><a href="https://wa.me/5215637940104?text=Hola%207Fitment%2C%20quiero%20cotizar%20un%20proyecto%20para%20mi%20auto" target="_blank" rel="noreferrer">WhatsApp</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
       <span>© 2025 7Fitment. Todos los derechos reservados.</span>
+      <span class="footer-stamp">EST. SAT&Eacute;LITE / MX &mdash; 7F</span>
       <a href="#">Política de privacidad</a>
     </div>
   </div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="/vendor/gsap.min.js"></script>
+<script src="/vendor/ScrollTrigger.min.js"></script>
+<script src="/vendor/SplitText.min.js"></script>
+<script src="/vendor/lenis.min.js"></script>
 <script>
 (function () {
   var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var gsapApi = window.gsap;
-  if (gsapApi && window.ScrollTrigger) gsapApi.registerPlugin(window.ScrollTrigger);
+  var ST = window.ScrollTrigger;
+  if (gsapApi && ST) gsapApi.registerPlugin(ST);
+  if (gsapApi && window.SplitText) gsapApi.registerPlugin(window.SplitText);
+  var hasScroll = !!(gsapApi && ST && !reduce);
+  var useSplitTextPlugin = !!(gsapApi && window.SplitText && !reduce);
+  var isDesktop = window.matchMedia('(min-width: 720px)').matches;
+
+  // ---- Lenis smooth scroll (synced to the GSAP ticker; released by the preloader) ----
+  var lenis = null;
+  if (!reduce && window.Lenis && gsapApi && ST) {
+    lenis = new window.Lenis({ autoRaf: false, anchors: { offset: -72 } });
+    lenis.on('scroll', ST.update);
+    gsapApi.ticker.add(function (t) { lenis.raf(t * 1000); });
+    gsapApi.ticker.lagSmoothing(0);
+    lenis.stop();
+  }
+
+  // ---- Progressive media reveal ----
+  function markLoaded(node) {
+    if (!node) return;
+    window.requestAnimationFrame(function () {
+      node.classList.add('is-loaded');
+    });
+  }
+
+  function initProgressiveMedia() {
+    Array.prototype.slice.call(document.querySelectorAll('img.media-fade')).forEach(function (img) {
+      if (img.complete) {
+        markLoaded(img);
+        return;
+      }
+      img.addEventListener('load', function () { markLoaded(img); }, { once: true });
+      img.addEventListener('error', function () { markLoaded(img); }, { once: true });
+    });
+
+    Array.prototype.slice.call(document.querySelectorAll('video.media-fade')).forEach(function (video) {
+      if (reduce) return;
+      if (video.readyState >= 2) {
+        markLoaded(video);
+      } else {
+        video.addEventListener('loadeddata', function () { markLoaded(video); }, { once: true });
+        video.addEventListener('canplay', function () { markLoaded(video); }, { once: true });
+      }
+      var play = video.play();
+      if (play && typeof play.catch === 'function') {
+        play.catch(function () {
+          markLoaded(video);
+        });
+      }
+    });
+  }
+  initProgressiveMedia();
 
   // ---- GSAP text reveals ----
   function splitText(el) {
@@ -1746,16 +2365,90 @@
     return units;
   }
 
-  var splitUnits = Array.prototype.slice.call(document.querySelectorAll('[data-split]')).reduce(function (acc, el) {
+  // When the SplitText plugin is live, the raw text is left intact and split at
+  // reveal time (post fonts.ready) so masks measure final glyph metrics.
+  var splitUnits = useSplitTextPlugin ? [] : Array.prototype.slice.call(document.querySelectorAll('[data-split]')).reduce(function (acc, el) {
     return acc.concat(splitText(el));
   }, []);
 
+  // Prepare the hero split DURING the preloader (parallel), masked + hidden, so the
+  // reveal can fire the instant the wipe ends — no static FOUT frame in between.
+  var heroTitleEl = null;
+  var heroSubEl = null;
+  var heroHudEl = null;
+  var heroChars = null;
+  var heroWords = null;
+
+  function restoreHeroTitle() {
+    if (heroTitleEl) gsapApi ? gsapApi.set(heroTitleEl, { autoAlpha: 1 }) : (heroTitleEl.style.visibility = 'visible');
+    else {
+      var t = document.getElementById('hero-title');
+      if (t) t.style.visibility = 'visible';
+    }
+    if (heroSubEl && gsapApi) gsapApi.set(heroSubEl, { autoAlpha: 1 });
+    if (heroChars && gsapApi) gsapApi.set(heroChars, { yPercent: 0 });
+    if (heroWords && gsapApi) gsapApi.set(heroWords, { yPercent: 0 });
+  }
+
+  // Synchronously paint title + subtitle transparent the moment the script runs,
+  // before fonts.ready, so neither flashes unsplit while the preloader is up.
+  if (useSplitTextPlugin) {
+    var preTitle = document.getElementById('hero-title');
+    var preSub = document.querySelector('.hero-content .body[data-split]');
+    if (preTitle) gsapApi.set(preTitle, { autoAlpha: 0 });
+    if (preSub) gsapApi.set(preSub, { autoAlpha: 0 });
+  }
+
+  var heroPrepared = useSplitTextPlugin
+    ? document.fonts.ready.then(function () {
+        heroTitleEl = document.getElementById('hero-title');
+        heroSubEl = document.querySelector('.hero-content .body[data-split]');
+        heroHudEl = document.getElementById('heroHud');
+        if (heroTitleEl) {
+          var st = window.SplitText.create(heroTitleEl, { type: 'chars', mask: 'chars', autoSplit: true });
+          heroChars = st.chars;
+          gsapApi.set(heroChars, { yPercent: 115 });
+          gsapApi.set(heroTitleEl, { autoAlpha: 0 }); // visible box, painted transparent, ready to flip
+        }
+        if (heroSubEl) {
+          var sw = window.SplitText.create(heroSubEl, { type: 'words', mask: 'words', autoSplit: true });
+          heroWords = sw.words;
+          gsapApi.set(heroWords, { yPercent: 115 });
+          gsapApi.set(heroSubEl, { autoAlpha: 0 });
+        }
+        return true;
+      })
+    : Promise.resolve(false);
+
+  function playHeroReveal() {
+    if (heroTitleEl && heroChars) {
+      gsapApi.set(heroTitleEl, { autoAlpha: 1 });
+      gsapApi.to(heroChars, { yPercent: 0, duration: 1.15, stagger: 0.035, ease: 'power4.out' });
+    }
+    if (heroSubEl && heroWords) {
+      gsapApi.set(heroSubEl, { autoAlpha: 1 });
+      gsapApi.to(heroWords, { yPercent: 0, duration: 0.95, stagger: 0.016, delay: 0.25, ease: 'power4.out' });
+    }
+    gsapApi.fromTo('.hero-video, .hero-poster', { scale: 1.08 }, { scale: 1.03, duration: 2.2, ease: 'power3.out' });
+    if (heroHudEl) gsapApi.to(heroHudEl, { opacity: 1, duration: 1.4, delay: 0.4, ease: 'power2.out' });
+  }
+
   function revealSplitText() {
+    if (useSplitTextPlugin) {
+      heroPrepared.then(function (ok) {
+        if (ok) playHeroReveal();
+        else restoreHeroTitle();
+      }).catch(restoreHeroTitle);
+      return;
+    }
+    // Fallback path: title was hidden via CSS — restore it before the custom reveal.
+    restoreHeroTitle();
     if (!splitUnits.length) return;
     if (reduce) {
       splitUnits.forEach(function (unit) {
         unit.style.opacity = '1';
         unit.style.transform = 'none';
+        unit.classList.add('is-visible');
       });
       return;
     }
@@ -1767,9 +2460,14 @@
         duration: 1.05,
         stagger: 0.028,
         ease: 'power4.out',
-        delay: 0.05
+        delay: 0.45
       });
-      gsapApi.fromTo('.hero-media .ph', { scale: 1.08 }, { scale: 1.03, duration: 2.2, ease: 'power3.out' });
+      splitUnits.forEach(function (unit) {
+        unit.classList.add('is-visible');
+      });
+      gsapApi.fromTo('.hero-video, .hero-poster', { scale: 1.08 }, { scale: 1.03, duration: 2.2, ease: 'power3.out' });
+      var hudFb = document.getElementById('heroHud');
+      if (hudFb) gsapApi.to(hudFb, { opacity: 1, duration: 1.4, delay: 0.5, ease: 'power2.out' });
       return;
     }
     splitUnits.forEach(function (unit, index) {
@@ -1777,22 +2475,73 @@
       unit.style.transitionDelay = (index * 28) + 'ms';
       unit.style.opacity = '1';
       unit.style.transform = 'translate3d(0,0,0)';
+      unit.classList.add('is-visible');
     });
+    var hudNo = document.getElementById('heroHud');
+    if (hudNo) hudNo.style.opacity = '1';
   }
 
-  // ---- Preloader ----
+  // ---- Preloader (mono counter + shutter wipe) ----
   var preloader = document.getElementById('preloader');
-  function dismissPreloader() {
+  var preloaderLine = document.getElementById('preloaderLine');
+  var preloaderReadout = document.getElementById('preloaderReadout');
+  var preloaderDismissed = false;
+
+  function setReadout(value) {
+    if (!preloaderReadout) return;
+    var v = Math.round(value);
+    var padded = v < 10 ? '00' + v : v < 100 ? '0' + v : '' + v;
+    preloaderReadout.innerHTML = 'LOADING &mdash; ' + padded;
+  }
+
+  function finishPreloader() {
     document.body.classList.remove('preloading');
-    if (preloader) {
+    if (!preloader) {
+      if (lenis) lenis.start();
+      revealSplitText();
+      return;
+    }
+    if (!hasScroll) {
       preloader.classList.add('fade');
       setTimeout(function () { preloader.remove(); }, 800);
+      if (lenis) lenis.start();
+      revealSplitText();
+      return;
     }
-    revealSplitText();
+    setReadout(100);
+    var tl = gsapApi.timeline({
+      onComplete: function () {
+        preloader.remove();
+        if (lenis) lenis.start();
+        revealSplitText();
+      }
+    });
+    if (preloaderLine) {
+      tl.to(preloaderLine, { scaleX: 1, duration: 0.4, ease: 'power2.inOut' });
+    }
+    tl.to(preloader, { yPercent: -100, duration: 0.9, ease: 'expo.inOut' }, '+=0.05');
   }
+
+  function dismissPreloader() {
+    if (preloaderDismissed) return;
+    preloaderDismissed = true;
+    finishPreloader();
+  }
+
   if (reduce) {
-    dismissPreloader();
+    document.body.classList.remove('preloading');
+    if (preloader) preloader.style.display = 'none';
+    revealSplitText();
   } else {
+    if (hasScroll && preloaderReadout) {
+      var counter = { v: 0 };
+      gsapApi.to(counter, {
+        v: 92,
+        duration: 1.4,
+        ease: 'power2.out',
+        onUpdate: function () { setReadout(counter.v); }
+      });
+    }
     window.addEventListener('load', function () {
       setTimeout(dismissPreloader, 1400);
     });
@@ -1818,115 +2567,216 @@
   }, { passive: true });
   requestAnimationFrame(tickGrid);
 
-  // ---- Parallax (hero + technical media cards) ----
-  var heroMedia = document.querySelector('.hero-media');
-  var parallaxEls = Array.prototype.slice.call(document.querySelectorAll('.detail-media .ph'));
-  var ticking = false;
-  function applyParallax() {
-    var y = window.scrollY;
-    if (heroMedia && y < window.innerHeight * 1.2) {
-      heroMedia.style.transform = 'translate3d(0,' + (y * 0.5) + 'px, 0)';
-    }
-    parallaxEls.forEach(function (el) {
-      var rect = el.getBoundingClientRect();
-      if (rect.bottom < 0 || rect.top > window.innerHeight) return;
-      var centerOffset = (rect.top + rect.height / 2) - window.innerHeight / 2;
-      var move = centerOffset * -0.035;
-      el.style.transform = 'translate3d(0,' + move.toFixed(2) + 'px,0) scale(1.025)';
-    });
-    ticking = false;
-  }
-  if (!reduce) {
-    document.addEventListener('scroll', function () {
-      if (!ticking) {
-        requestAnimationFrame(applyParallax);
-        ticking = true;
-      }
-    }, { passive: true });
-    applyParallax();
-  }
-
-  // ---- Nav scroll state ----
   var nav = document.getElementById('nav');
-  function onScroll() {
-    if (window.scrollY > 50) nav.classList.add('scrolled');
-    else nav.classList.remove('scrolled');
-  }
-  document.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
 
-  // ---- Mobile menu ----
+  // ---- Hero + detail parallax (ScrollTrigger scrubs) ----
+  function initParallax() {
+    if (!hasScroll) return;
+    var heroMedia = document.querySelector('.hero-media');
+    var heroVideo = document.querySelector('.hero-video');
+    var heroContent = document.querySelector('.hero-content');
+    var heroHint = document.querySelector('.hero-scroll-hint');
+    var heroHud = document.getElementById('heroHud');
+    var heroSection = document.querySelector('.hero');
+
+    gsapApi.matchMedia().add({
+      desktop: '(min-width: 768px)',
+      mobile: '(max-width: 767px)'
+    }, function (ctx) {
+      var mobile = ctx.conditions.mobile;
+      if (heroSection) {
+        var tl = gsapApi.timeline({
+          scrollTrigger: { trigger: heroSection, start: 'top top', end: 'bottom top', scrub: 0.6 }
+        });
+        if (heroMedia) tl.to(heroMedia, { y: mobile ? '9vh' : '18vh', ease: 'none' }, 0);
+        if (heroVideo) tl.to(heroVideo, { scale: mobile ? 1.08 : 1.14, ease: 'none' }, 0);
+        if (!mobile && heroContent) tl.to(heroContent, { y: '-6vh', opacity: 0.25, ease: 'none' }, 0);
+        if (heroHud) tl.to(heroHud, { y: -20, ease: 'none' }, 0);
+        if (heroHint) {
+          gsapApi.to(heroHint, {
+            opacity: 0,
+            ease: 'none',
+            scrollTrigger: { trigger: heroSection, start: 'top top', end: '12% top', scrub: true }
+          });
+        }
+      }
+      // detail-media micro-parallax (desktop only)
+      if (!mobile) {
+        gsapApi.utils.toArray('.detail-media .ph').forEach(function (el) {
+          gsapApi.fromTo(el, { y: -24 }, {
+            y: 24,
+            ease: 'none',
+            scrollTrigger: { trigger: el, start: 'top bottom', end: 'bottom top', scrub: 0.8 }
+          });
+        });
+      }
+    });
+
+    // pause hero video offscreen (battery)
+    if (heroVideo && heroSection) {
+      ST.create({
+        trigger: heroSection,
+        start: 'top bottom',
+        end: 'bottom top',
+        onLeave: function () { heroVideo.pause(); },
+        onLeaveBack: function () { heroVideo.pause(); },
+        onEnter: function () { heroVideo.play().catch(function () {}); },
+        onEnterBack: function () { heroVideo.play().catch(function () {}); }
+      });
+    }
+  }
+  initParallax();
+
+  // ---- Nav: scroll progress hairline + scrolled state + hide-on-scroll ----
+  function initNav() {
+    var navProgress = document.getElementById('navProgress');
+    if (!hasScroll) {
+      if (window.scrollY > 50) nav.classList.add('scrolled');
+      var fallback = function () {
+        if (window.scrollY > 50) nav.classList.add('scrolled');
+        else nav.classList.remove('scrolled');
+      };
+      document.addEventListener('scroll', fallback, { passive: true });
+      return;
+    }
+    var setProgress = navProgress ? gsapApi.quickSetter(navProgress, 'scaleX') : null;
+    var lastY = 0;
+    ST.create({
+      start: 0,
+      end: 'max',
+      onUpdate: function (self) {
+        if (setProgress) setProgress(self.progress);
+        var y = self.scroll();
+        if (y > 50) nav.classList.add('scrolled');
+        else nav.classList.remove('scrolled');
+        if (y > 200) {
+          if (self.direction === 1) gsapApi.to(nav, { yPercent: -100, duration: 0.4, ease: 'power3.out', overwrite: true });
+          else gsapApi.to(nav, { yPercent: 0, duration: 0.4, ease: 'power3.out', overwrite: true });
+        } else {
+          gsapApi.to(nav, { yPercent: 0, duration: 0.4, ease: 'power3.out', overwrite: true });
+        }
+        lastY = y;
+      }
+    });
+  }
+  initNav();
+
+  // ---- Mobile menu (GSAP clip-path timeline + Lenis lock) ----
   var burger = document.getElementById('burger');
   var menu = document.getElementById('mobileMenu');
   var closeBtn = document.getElementById('burgerClose');
+  var menuLinks = menu ? Array.prototype.slice.call(menu.querySelectorAll('nav a')) : [];
+  var menuFoot = menu ? menu.querySelector('.mobile-menu-foot') : null;
+  var menuTl = null;
+
+  if (hasScroll && menu) {
+    menu.classList.add('gsap-driven');
+    menu.style.display = 'flex';
+    gsapApi.set(menu, { clipPath: 'inset(0 0 100% 0)' });
+    gsapApi.set(menuLinks, { y: 40, opacity: 0 });
+    if (menuFoot) gsapApi.set(menuFoot, { opacity: 0 });
+    menuTl = gsapApi.timeline({ paused: true })
+      .to(menu, { clipPath: 'inset(0 0 0% 0)', duration: 0.7, ease: 'expo.inOut' })
+      .to(menuLinks, { y: 0, opacity: 1, duration: 0.6, stagger: 0.06, ease: 'expo.out' }, '-=0.35')
+      .to(menuFoot || {}, { opacity: 1, duration: 0.4, ease: 'power2.out' }, '-=0.3');
+  }
+
   function openMenu() {
-    menu.classList.add('open');
     menu.setAttribute('aria-hidden', 'false');
     burger.setAttribute('aria-expanded', 'true');
+    if (lenis) lenis.stop();
     document.body.style.overflow = 'hidden';
+    if (menuTl) menuTl.play();
+    else menu.classList.add('open');
   }
   function closeMenu() {
-    menu.classList.remove('open');
     menu.setAttribute('aria-hidden', 'true');
     burger.setAttribute('aria-expanded', 'false');
+    if (lenis) lenis.start();
     document.body.style.overflow = '';
+    if (menuTl) menuTl.reverse();
+    else menu.classList.remove('open');
   }
-  burger.addEventListener('click', openMenu);
-  closeBtn.addEventListener('click', closeMenu);
-  menu.querySelectorAll('[data-close]').forEach(function (a) {
+  if (burger) burger.addEventListener('click', openMenu);
+  if (closeBtn) closeBtn.addEventListener('click', closeMenu);
+  if (menu) menu.querySelectorAll('[data-close]').forEach(function (a) {
     a.addEventListener('click', closeMenu);
   });
 
   // ---- Aura parallax showcase ----
   function initAuraShowcase() {
-    if (!gsapApi || !window.ScrollTrigger || reduce) return;
+    if (!hasScroll) return;
+    var cards = gsapApi.utils.toArray('.aura-card');
 
-    gsapApi.utils.toArray('.aura-card').forEach(function (card) {
-      var speed = parseFloat(card.getAttribute('data-aura-speed') || '0.2');
-      var distance = Math.round(260 * speed);
-      var image = card.querySelector('img');
+    // sheen element + first-enter sweep (desktop only, once)
+    cards.forEach(function (card) {
+      var sheen = document.createElement('i');
+      sheen.className = 'aura-sheen';
+      card.appendChild(sheen);
+    });
 
-      gsapApi.fromTo(card, {
-        y: distance,
-        rotate: speed * -2
-      }, {
-        y: -distance,
-        rotate: speed * 2,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: '.aura-showcase',
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 1.1
+    gsapApi.matchMedia().add({
+      desktop: '(min-width: 768px)',
+      mobile: '(max-width: 767px)'
+    }, function (ctx) {
+      var mobile = ctx.conditions.mobile;
+
+      if (mobile) {
+        // one-shot reveals, no scrub
+        cards.forEach(function (card) {
+          gsapApi.fromTo(card, { opacity: 0, y: 40 }, {
+            opacity: 1, y: 0, duration: 0.9, ease: 'expo.out',
+            scrollTrigger: { trigger: card, start: 'top 88%', once: true }
+          });
+        });
+        return;
+      }
+
+      cards.forEach(function (card) {
+        var speed = parseFloat(card.getAttribute('data-aura-speed') || '0.2');
+        var distance = Math.round(260 * speed);
+        var image = card.querySelector('img');
+        var sheen = card.querySelector('.aura-sheen');
+        var cap = card.querySelector('figcaption');
+
+        gsapApi.fromTo(card, { y: distance, rotate: speed * -2 }, {
+          y: -distance, rotate: speed * 2, ease: 'none',
+          scrollTrigger: { trigger: '.aura-showcase', start: 'top bottom', end: 'bottom top', scrub: 1.1 }
+        });
+
+        if (image) {
+          gsapApi.fromTo(image, { y: -Math.abs(distance) * 0.32, scale: 1.1 }, {
+            y: Math.abs(distance) * 0.34, scale: 1.04, ease: 'none',
+            scrollTrigger: { trigger: card, start: 'top bottom', end: 'bottom top', scrub: 0.9 }
+          });
+        }
+
+        if (sheen) {
+          gsapApi.fromTo(sheen, { xPercent: -130 }, {
+            xPercent: 130, duration: 1.1, ease: 'power2.inOut',
+            scrollTrigger: { trigger: card, start: 'top 78%', once: true }
+          });
+        }
+
+        if (cap) {
+          gsapApi.from(cap, {
+            y: 14, opacity: 0, duration: 0.6, ease: 'expo.out',
+            scrollTrigger: { trigger: card, start: 'top 78%', once: true }
+          });
         }
       });
-
-      if (image) {
-        gsapApi.fromTo(image, {
-          y: -Math.abs(distance) * 0.32,
-          scale: 1.1
-        }, {
-          y: Math.abs(distance) * 0.34,
-          scale: 1.04,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: card,
-            start: 'top bottom',
-            end: 'bottom top',
-            scrub: 0.9
-          }
-        });
-      }
     });
   }
   initAuraShowcase();
 
   // ---- Viewport title reveals (word masks + power4 stagger) ----
   function initPremiumTextReveals() {
-    var targets = Array.prototype.slice.call(document.querySelectorAll('.h1.reveal, .aura-copy .h1, .tech-copy .h1'))
+    var targets = Array.prototype.slice.call(document.querySelectorAll('.h1.reveal, .aura-copy .h1, .tech-copy .h1, [data-premium-reveal]'))
       .filter(function (el) { return !el.hasAttribute('data-split') && !el.dataset.premiumSplit; });
 
     function splitPremiumWords(el) {
+      var sourceLines = Array.prototype.slice.call(el.querySelectorAll('.manifesto-line'));
+      var characterMode = sourceLines.length > 0;
       var text = (el.textContent || '').trim();
       var frag = document.createDocumentFragment();
       var units = [];
@@ -1934,30 +2784,54 @@
       el.dataset.premiumSplit = 'true';
       el.classList.add('premium-split');
 
-      text.split(/(\s+)/).forEach(function (part) {
-        if (!part) return;
-        if (/^\s+$/.test(part)) {
-          var space = document.createElement('span');
-          space.className = 'premium-word-space';
-          frag.appendChild(space);
-          return;
-        }
-        var mask = document.createElement('span');
-        var word = document.createElement('span');
-        mask.className = 'premium-word-mask';
-        word.className = 'premium-word';
-        word.textContent = part;
-        mask.appendChild(word);
-        frag.appendChild(mask);
-        units.push(word);
-      });
+      function appendWords(container, lineText) {
+        lineText.split(/(\s+)/).forEach(function (part) {
+          if (!part) return;
+          if (/^\s+$/.test(part)) {
+            var space = document.createElement('span');
+            space.className = 'premium-word-space';
+            container.appendChild(space);
+            return;
+          }
+          var mask = document.createElement('span');
+          mask.className = 'premium-word-mask';
+          if (characterMode) {
+            Array.prototype.forEach.call(part, function (character) {
+              var letter = document.createElement('span');
+              letter.className = 'premium-letter';
+              letter.textContent = character;
+              mask.appendChild(letter);
+              units.push(letter);
+            });
+          } else {
+            var word = document.createElement('span');
+            word.className = 'premium-word';
+            word.textContent = part;
+            mask.appendChild(word);
+            units.push(word);
+          }
+          container.appendChild(mask);
+        });
+      }
+
+      if (sourceLines.length) {
+        sourceLines.forEach(function (sourceLine) {
+          var line = document.createElement('span');
+          line.className = 'premium-source-line';
+          appendWords(line, (sourceLine.textContent || '').trim());
+          frag.appendChild(line);
+        });
+      } else {
+        appendWords(frag, text);
+      }
 
       el.appendChild(frag);
-      return units;
+      return { characterMode: characterMode, units: units };
     }
 
     var entries = targets.map(function (el) {
-      return { el: el, units: splitPremiumWords(el) };
+      var split = splitPremiumWords(el);
+      return { characterMode: split.characterMode, el: el, units: split.units };
     });
 
     if (reduce) {
@@ -1980,16 +2854,20 @@
             yPercent: 0,
             y: 0,
             opacity: 1,
-            duration: 1,
-            stagger: 0.045,
-            ease: 'power4.out'
+            duration: found.characterMode ? 0.86 : 1,
+            stagger: found.characterMode ? 0.024 : 0.045,
+            ease: 'power4.out',
+            onComplete: function () {
+              gsapApi.set(found.units, { willChange: 'auto' });
+            }
           });
         } else {
           found.units.forEach(function (unit, index) {
             unit.style.transition = 'opacity 0.72s var(--ease), transform 0.72s var(--ease)';
-            unit.style.transitionDelay = (index * 45) + 'ms';
+            unit.style.transitionDelay = (index * (found.characterMode ? 24 : 45)) + 'ms';
             unit.style.opacity = '1';
             unit.style.transform = 'translate3d(0,0,0)';
+            unit.style.willChange = 'auto';
           });
         }
         titleIo.unobserve(item.target);
@@ -2148,15 +3026,204 @@
     paint(performance.now());
     if (reduce) return;
 
+    // Mobile (<768px): never start the rAF loop — the CSS .scan-fallback covers it.
+    var desktopMql = window.matchMedia('(min-width: 768px)');
     var scannerIo = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (entry.isIntersecting) start();
+        if (entry.isIntersecting && desktopMql.matches) start();
         else stop();
       });
     }, { threshold: 0.1 });
-    scannerIo.observe(section || canvas);
+    if (desktopMql.matches) scannerIo.observe(section || canvas);
+
+    var onBreakpoint = function (e) {
+      if (e.matches) {
+        scannerIo.observe(section || canvas);
+      } else {
+        stop();
+        scannerIo.unobserve(section || canvas);
+        ctx.clearRect(0, 0, width, height);
+      }
+    };
+    if (desktopMql.addEventListener) desktopMql.addEventListener('change', onBreakpoint);
+    else if (desktopMql.addListener) desktopMql.addListener(onBreakpoint);
   }
   initSurfaceScanner();
+
+  // Public content slots: PostgreSQL remains the source of truth while the
+  // cinematic landing stays isolated from the React application shell.
+  (function hydratePublicSite() {
+    fetch('/api/public/site', { credentials: 'include' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('Public site unavailable');
+        return response.json();
+      })
+      .then(function (payload) {
+        var workshop = payload.workshop;
+        if (workshop) {
+          var location = [workshop.city, workshop.state].filter(Boolean).join(', ');
+          var locationNode = document.querySelector('[data-site-location]');
+          if (locationNode && location) locationNode.textContent = workshop.name + ' — ' + location;
+          var descriptionNode = document.querySelector('[data-site-description]');
+          if (descriptionNode && (workshop.description || workshop.tagline)) {
+            descriptionNode.textContent = workshop.description || workshop.tagline;
+          }
+          var footerNode = document.querySelector('[data-site-footer]');
+          if (footerNode && location) footerNode.textContent = workshop.name + ' — ' + location + '.';
+          var instagramNode = document.querySelector('[data-site-instagram]');
+          if (instagramNode && workshop.instagram_url) instagramNode.href = workshop.instagram_url;
+        }
+
+        if (!Array.isArray(payload.services) || !payload.services.length) return;
+        var groups = {
+          personalization: payload.services.filter(function (service) {
+            return String(service.service_type).toLowerCase() === 'wrap';
+          }),
+          protection: payload.services.filter(function (service) {
+            return ['ppf', 'ceramic', 'detailing', 'maintenance'].indexOf(String(service.service_type).toLowerCase()) >= 0;
+          })
+        };
+        Object.keys(groups).forEach(function (name) {
+          var list = document.querySelector('[data-service-group="' + name + '"]');
+          var services = groups[name].slice(0, 3);
+          if (!list || !services.length) return;
+          list.replaceChildren.apply(list, services.map(function (service) {
+            var item = document.createElement('li');
+            item.textContent = service.name;
+            return item;
+          }));
+        });
+      })
+      .catch(function () {
+        // Static premium content remains a complete fallback.
+      });
+  })();
+
+  // ---- Manifesto ink-fill + section choreography ----
+  function initSectionChoreography() {
+    if (!hasScroll) return;
+
+    // Manifesto paragraph ink-fill (words darken-to-light on scrub)
+    var manifestoCopy = document.querySelector('.manifesto .body');
+    if (manifestoCopy && window.SplitText) {
+      document.fonts.ready.then(function () {
+        var split = window.SplitText.create(manifestoCopy, { type: 'words', autoSplit: true });
+        gsapApi.set(split.words, { color: '#3a3a3a' });
+        gsapApi.to(split.words, {
+          color: '#f2f2f2', stagger: 0.5, ease: 'none',
+          scrollTrigger: { trigger: manifestoCopy, start: 'top 75%', end: 'top 32%', scrub: true }
+        });
+      });
+    }
+
+    // Hairline draw on section rules
+    gsapApi.utils.toArray('.section-rule').forEach(function (rule) {
+      gsapApi.fromTo(rule, { scaleX: 0, transformOrigin: 'center' }, {
+        scaleX: 1, duration: 0.7, ease: 'power3.out',
+        scrollTrigger: { trigger: rule, start: 'top 90%', once: true }
+      });
+    });
+
+    // Fork list items stagger
+    gsapApi.utils.toArray('.fork-card').forEach(function (card) {
+      var items = card.querySelectorAll('.fork-list li');
+      if (items.length) {
+        gsapApi.from(items, {
+          x: -10, opacity: 0, duration: 0.5, stagger: 0.05, ease: 'expo.out',
+          scrollTrigger: { trigger: card, start: 'top 70%', once: true }
+        });
+      }
+    });
+
+    // Detail ph scanline sweep (once per block)
+    gsapApi.utils.toArray('.ph-scan').forEach(function (scan) {
+      var block = scan.closest('.detail-media') || scan.parentElement;
+      gsapApi.set(scan, { yPercent: 0, opacity: 0 });
+      gsapApi.to(scan, {
+        keyframes: [
+          { opacity: 1, duration: 0.2, ease: 'power1.out' },
+          { yPercent: 1100, opacity: 0, duration: 1.4, ease: 'power1.in' }
+        ],
+        scrollTrigger: { trigger: block, start: 'top 75%', once: true }
+      });
+    });
+
+    // Steps: progress hairline + odometer number rise
+    var stepsProgress = document.getElementById('stepsProgress');
+    if (stepsProgress) {
+      gsapApi.fromTo(stepsProgress, { scaleX: 0 }, {
+        scaleX: 1, ease: 'none',
+        scrollTrigger: { trigger: '.steps', start: 'top 70%', end: 'bottom 60%', scrub: true }
+      });
+    }
+    gsapApi.utils.toArray('.step-num-val').forEach(function (val, i) {
+      gsapApi.from(val, {
+        yPercent: 100, duration: 0.8, delay: i * 0.04, ease: 'expo.out',
+        scrollTrigger: { trigger: val.closest('.step'), start: 'top 82%', once: true }
+      });
+    });
+
+    // Portfolio: batch clip reveals + index already CSS
+    gsapApi.matchMedia().add({
+      desktop: '(min-width: 768px)',
+      mobile: '(max-width: 767px)'
+    }, function (ctx) {
+      var mobile = ctx.conditions.mobile;
+      var items = gsapApi.utils.toArray('.pf-item');
+      if (mobile) {
+        gsapApi.set(items, { opacity: 0, y: 40 });
+        ST.batch(items, {
+          start: 'top 90%', once: true,
+          onEnter: function (b) { gsapApi.to(b, { opacity: 1, y: 0, duration: 0.8, stagger: 0.06, ease: 'expo.out' }); }
+        });
+      } else {
+        gsapApi.set(items, { clipPath: 'inset(14% 6% 14% 6%)' });
+        items.forEach(function (item) {
+          var img = item.querySelector('.pf-media img, .ph');
+          if (img) gsapApi.set(img, { scale: 1.12 });
+        });
+        ST.batch(items, {
+          start: 'top 86%', once: true,
+          onEnter: function (b) {
+            b.forEach(function (item) {
+              var img = item.querySelector('.pf-media img, .ph');
+              var tl = gsapApi.timeline();
+              tl.to(item, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.1, ease: 'expo.out' }, 0);
+              if (img) tl.to(img, { scale: 1.04, duration: 1.1, ease: 'expo.out' }, 0);
+            });
+          }
+        });
+        // inner-img scrub parallax
+        items.forEach(function (item) {
+          var img = item.querySelector('.pf-media img');
+          if (img) {
+            gsapApi.fromTo(img, { yPercent: -7 }, {
+              yPercent: 7, ease: 'none',
+              scrollTrigger: { trigger: item, start: 'top bottom', end: 'bottom top', scrub: 0.9 }
+            });
+          }
+        });
+      }
+    });
+
+    // Footer wordmark scrub
+    var wordmark = document.getElementById('footerWordmark');
+    if (wordmark) {
+      gsapApi.fromTo(wordmark, { yPercent: 20 }, {
+        yPercent: 0, ease: 'none',
+        scrollTrigger: { trigger: '.footer', start: 'top bottom', end: 'top 60%', scrub: true }
+      });
+    }
+  }
+  initSectionChoreography();
+
+  // ---- Keep ScrollTrigger measurements correct as media/fonts settle ----
+  if (hasScroll) {
+    window.addEventListener('load', function () { ST.refresh(); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () { ST.refresh(); });
+    }
+  }
 
   // ---- Scroll reveals (reveal / reveal-left / reveal-right) ----
   var io = new IntersectionObserver(function (entries) {

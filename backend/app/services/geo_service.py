@@ -25,6 +25,9 @@ class GeoLocation:
     country: str = UNKNOWN_LOCATION
     state: str = UNKNOWN_LOCATION
     city: str = UNKNOWN_LOCATION
+    latitude: float | None = None
+    longitude: float | None = None
+    accuracy_meters: int | None = None
 
 
 @runtime_checkable
@@ -55,6 +58,14 @@ def _clean_location(value: Any) -> str:
     return UNKNOWN_LOCATION
 
 
+def _clean_coordinate(value: Any) -> float | None:
+    try:
+        coordinate = float(value)
+    except (TypeError, ValueError):
+        return None
+    return coordinate
+
+
 class IPApiGeoService:
     """
     Resuelve IPs publicas usando http://ip-api.com/json/{ip}.
@@ -82,7 +93,7 @@ class IPApiGeoService:
                 response = await client.get(
                     f"{self._base_url}/{ip_address}",
                     params={
-                        "fields": "status,country,regionName,city,message",
+                        "fields": "status,country,regionName,city,lat,lon,message",
                     },
                 )
             response.raise_for_status()
@@ -103,6 +114,9 @@ class IPApiGeoService:
             country=_clean_location(payload.get("country")),
             state=_clean_location(payload.get("regionName")),
             city=_clean_location(payload.get("city")),
+            latitude=_clean_coordinate(payload.get("lat")),
+            longitude=_clean_coordinate(payload.get("lon")),
+            accuracy_meters=5000,
         )
 
 

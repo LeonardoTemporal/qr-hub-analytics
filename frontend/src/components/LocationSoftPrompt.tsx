@@ -105,6 +105,9 @@ export default function LocationSoftPrompt() {
       await submitBrowserLocation({
         scan_token: scanToken,
         ...location,
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy_meters: Math.max(1, Math.round(position.coords.accuracy || 10)),
       });
       window.localStorage.setItem(STORAGE_KEY, "true");
     } catch {
@@ -146,7 +149,7 @@ export default function LocationSoftPrompt() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-4 pb-5 backdrop-blur-[2px] sm:items-center sm:pb-0">
-      <section className="relative w-full max-w-[460px] overflow-hidden border border-white/10 bg-[#080808]/95 p-5 text-[#f2f2f2] shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:p-6">
+      <section className="soft-prompt-in relative w-full max-w-[460px] overflow-hidden border border-white/10 bg-[#080808]/95 p-5 text-[#f2f2f2] shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:p-6">
         <div
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(255,255,255,0.08),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.045),transparent_44%)]"
           aria-hidden="true"
@@ -161,10 +164,12 @@ export default function LocationSoftPrompt() {
         </button>
 
         <div className="relative z-10">
-          <div className="mb-5 flex h-11 w-11 items-center justify-center border border-white/10 bg-[#050505] text-[#d8d8d8]">
+          <div className="relative mb-5 flex h-11 w-11 items-center justify-center border border-white/10 bg-[#050505] text-[#d8d8d8]">
             <MapPin size={18} strokeWidth={1.5} />
+            <span className="absolute -left-px -top-px h-2.5 w-2.5 border-l border-t border-white/40" aria-hidden="true" />
+            <span className="absolute -bottom-px -right-px h-2.5 w-2.5 border-b border-r border-white/40" aria-hidden="true" />
           </div>
-          <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.28em] text-[#707070]">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.28em] text-[#707070]">
             Experiencia personalizada
           </p>
           <h2 className="max-w-[360px] text-[26px] font-medium leading-[0.98] tracking-[-0.055em]">
@@ -174,6 +179,8 @@ export default function LocationSoftPrompt() {
             Para ofrecerte una experiencia personalizada y mostrarte la disponibilidad
             de servicios en CDMX/EdoMex, necesitamos conocer tu ubicación.
           </p>
+
+          <div className="mt-6 h-px w-full bg-white/10" aria-hidden="true" />
 
           <div className="mt-6 grid gap-2 sm:grid-cols-[1fr_1.25fr]">
             <button

@@ -28,6 +28,7 @@ export interface GeoResponse {
   states: NameValue[];
   municipalities: NameValue[];
   cities: NameValue[];
+  clusters: GeoCluster[];
 }
 
 export interface TimelinePoint {
@@ -47,6 +48,51 @@ export interface AnalyticsBundle {
   distribution: DistributionResponse;
   geo: GeoResponse;
   timeline: TimelineResponse;
+  scans: ScanDetailResponse;
+}
+
+export interface GeoCluster {
+  geo_hash_5: string;
+  latitude: number;
+  longitude: number;
+  scan_count: number;
+  unique_devices: number;
+  top_device_type: string | null;
+  top_os: string | null;
+}
+
+export interface ScanDetailItem {
+  id: number;
+  campaign_id: string;
+  scan_token: string | null;
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  location_display: string;
+  latitude: number | null;
+  longitude: number | null;
+  accuracy_meters: number | null;
+  geo_source: "ip" | "browser" | "gps" | null;
+  device_type: string | null;
+  os: string | null;
+  browser: string | null;
+  scanned_at: string;
+}
+
+export interface ScanDetailResponse {
+  items: ScanDetailItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  sort_by: string;
+  sort_order: "asc" | "desc";
+}
+
+export interface ScanQueryOptions {
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 export interface CampaignOption {
@@ -60,6 +106,9 @@ export interface BrowserLocationPayload {
   country?: string;
   state?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
+  accuracy_meters?: number;
 }
 
 export interface ShowcaseMedia {
@@ -81,6 +130,19 @@ export interface ShowcaseResponse {
     year?: number | null;
   };
   services: ShowcaseService[];
+  profile?: {
+    title?: string | null;
+    description?: string | null;
+    hero_media_url?: string | null;
+    instagram_build_url?: string | null;
+    whatsapp_cta_url?: string | null;
+    book_consultation_url?: string | null;
+  } | null;
+  social_proof?: {
+    client_testimonial?: string | null;
+    vehicle_story?: string | null;
+    photographer_credit?: string | null;
+  } | null;
 }
 
 export interface PortalAuthResponse {
@@ -112,6 +174,30 @@ export interface PortalServiceRecord {
   media: PortalMedia[];
 }
 
+export interface PortalWarrantyClaim {
+  id: number;
+  claim_number: string;
+  warranty_policy_id: number;
+  status: string;
+  description: string;
+  incident_at?: string | null;
+  resolution_notes?: string | null;
+  resolved_at?: string | null;
+  created_at: string;
+  evidence: Array<{
+    media_asset_id: number;
+    media_url: string;
+    media_type: string;
+    original_filename: string;
+  }>;
+}
+
+export interface GarageWarrantyClaimInput {
+  warranty_policy_id: number;
+  description: string;
+  incident_at?: string;
+}
+
 export interface PortalDataResponse {
   client: {
     id: number;
@@ -132,14 +218,21 @@ export interface PortalDataResponse {
     is_active: boolean;
   };
   services: PortalServiceRecord[];
+  warranties: Array<{
+    id: number;
+    policy_number: string;
+    service_record_id: number;
+    status: string;
+    effective_date: string;
+    expiration_date: string;
+    terms_version: number;
+    policy_snapshot: Record<string, unknown>;
+  }>;
+  warranty_claims: PortalWarrantyClaim[];
 }
 
-const AUTH_KEY = "7fitment_dashboard_basic_auth";
-const AUTH_FLAG = "7fitment_dashboard_session";
 const GARAGE_TOKEN_KEY = "7fitment_garage_portal_token";
 const GARAGE_VEHICLE_KEY = "7fitment_garage_vehicle_context";
-const LOCAL_DASHBOARD_PASSWORD = "7fitment2026";
-const API_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 export const PUBLIC_SITE_URL =
   (import.meta.env.VITE_PUBLIC_SITE_URL ?? "https://7fitment.com").replace(/\/$/, "");
 export const DEFAULT_CAMPAIGN_ID =
@@ -153,95 +246,36 @@ export const CAMPAIGN_OPTIONS: CampaignOption[] = [
   },
 ];
 
-function apiUrl(path: string): string {
-  return API_URL ? `${API_URL}${path}` : path;
-}
-
-function getStoredAuth(): string | null {
-  return sessionStorage.getItem(AUTH_KEY);
-}
-
-export function clearSession(): void {
-  sessionStorage.removeItem(AUTH_KEY);
-  sessionStorage.removeItem(AUTH_FLAG);
-}
-
-function authHeaders(): HeadersInit {
-  const auth = getStoredAuth();
-  return auth ? { Authorization: `Basic ${auth}` } : {};
-}
-
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(apiUrl(path), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders(),
-      ...init.headers,
-    },
-  });
-
-  if (response.status === 401) {
-    clearSession();
-    throw new Error("Sesion expirada");
-  }
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
-  return (await response.json()) as T;
-}
-
-export async function login(password: string, username = "admin"): Promise<void> {
-  if (password !== LOCAL_DASHBOARD_PASSWORD) {
-    throw new Error("Clave incorrecta");
-  }
-
-  sessionStorage.setItem(AUTH_KEY, window.btoa(`${username}:${password}`));
-  sessionStorage.setItem(AUTH_FLAG, "true");
-
-  if (!API_URL) return;
-
-  const response = await fetch(apiUrl("/api/auth/login"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
-
-  if (!response.ok) {
-    clearSession();
-    throw new Error(
-      response.status === 401
-        ? "Clave incorrecta"
-        : "No se pudo iniciar sesion",
-    );
-  }
-}
-
-export async function validateSession(): Promise<boolean> {
-  if (sessionStorage.getItem(AUTH_FLAG) !== "true" || !getStoredAuth()) return false;
-  try {
-    await request<{ success: boolean; username: string }>("/api/auth/session");
-    return true;
-  } catch {
-    return getStoredAuth() === window.btoa(`admin:${LOCAL_DASHBOARD_PASSWORD}`);
-  }
+  return apiRequest<T>(path, init);
 }
 
 export async function fetchAnalytics(
   range: TimeRange,
   campaignId = DEFAULT_CAMPAIGN_ID,
+  scanOptions: ScanQueryOptions = {},
 ): Promise<AnalyticsBundle> {
   const params = new URLSearchParams({ campaign_id: campaignId });
+  const rangeParams = new URLSearchParams({ campaign_id: campaignId, range });
   const timelineParams = new URLSearchParams({ campaign_id: campaignId, range });
+  const scanParams = new URLSearchParams({
+    campaign_id: campaignId,
+    range,
+    page: String(scanOptions.page ?? 1),
+    page_size: String(scanOptions.pageSize ?? 25),
+    sort_by: scanOptions.sortBy ?? "scanned_at",
+    sort_order: scanOptions.sortOrder ?? "desc",
+  });
 
-  const [kpis, distribution, geo, timeline] = await Promise.all([
+  const [kpis, distribution, geo, timeline, scans] = await Promise.all([
     request<KpisResponse>(`/api/analytics/kpis?${params}`),
     request<DistributionResponse>(`/api/analytics/distribution?${params}`),
-    request<GeoResponse>(`/api/analytics/geo?${params}`),
+    request<GeoResponse>(`/api/analytics/geo?${rangeParams}`),
     request<TimelineResponse>(`/api/analytics/timeline?${timelineParams}`),
+    request<ScanDetailResponse>(`/api/analytics/scans?${scanParams}`),
   ]);
 
-  return { kpis, distribution, geo, timeline };
+  return { kpis, distribution, geo, timeline, scans };
 }
 
 export async function submitBrowserLocation(
@@ -252,6 +286,7 @@ export async function submitBrowserLocation(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
     keepalive: true,
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -260,18 +295,26 @@ export async function submitBrowserLocation(
 }
 
 async function publicRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const response = await fetch(apiUrl(path), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init.headers,
-    },
-  });
+  return apiRequest<T>(path, init);
+}
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+export async function trackQrEvent(input: {
+  event_type: string;
+  path?: string;
+  element_id?: string;
+  idempotency_key?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<boolean> {
+  try {
+    await publicRequest("/api/tracking/events", {
+      method: "POST",
+      body: JSON.stringify(input),
+      keepalive: true,
+    });
+    return true;
+  } catch {
+    return false;
   }
-  return (await response.json()) as T;
 }
 
 export function storeGarageVehicleContext(vehicleId: string): void {
@@ -316,3 +359,15 @@ export async function fetchGaragePortalData(token: string): Promise<PortalDataRe
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export async function createGarageWarrantyClaim(
+  token: string,
+  input: GarageWarrantyClaimInput,
+): Promise<PortalWarrantyClaim> {
+  return publicRequest<PortalWarrantyClaim>("/api/garage/portal/claims", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(input),
+  });
+}
+import { apiRequest, apiUrl } from "../app/api/client";

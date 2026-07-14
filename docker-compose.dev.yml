@@ -1,0 +1,8 @@
+services:
+  qrhub_backend:
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  qrhub_frontend:
+    ports:
+      - "127.0.0.1:3000:3000"

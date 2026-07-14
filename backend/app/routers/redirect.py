@@ -24,7 +24,9 @@ from sqlalchemy import select
 
 from app.config import settings
 from app.database import AsyncSessionLocal
-from app.models import Scan
+from app.domains.tracking.service import attribution_expires_at
+from app.models import Scan, ScanSession, VehicleQRCode
+from app.services.geohash_service import compute_scan_geohashes
 from app.services.geo_service import IPApiGeoService
 from app.services.ua_service import UserAgentService
 
@@ -47,6 +49,9 @@ class BrowserLocationPayload(BaseModel):
     country: str | None = Field(default=None, max_length=100)
     state: str | None = Field(default=None, max_length=100)
     city: str | None = Field(default=None, max_length=100)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+    accuracy_meters: int | None = Field(default=None, gt=0)
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +92,8 @@ def _build_redirect_target(
         if tracked_destination:
             return tracked_destination
 
-    target = f"{frontend_url.rstrip('/')}/enlaces"
+    frontend_base = frontend_url.rstrip("/")
+    target = frontend_base if frontend_base.endswith("/enlaces") else f"{frontend_base}/enlaces"
     if scan_token:
         return f"{target}?{urlencode({'scan': scan_token})}"
     return target
@@ -105,6 +111,8 @@ async def _record_scan(
     ip_address: str,
     user_agent_string: str,
     scan_token: str | None = None,
+    vehicle_qr_code_id: int | None = None,
+    landing_path: str = "/enlaces",
 ) -> None:
     """
     Procesa analíticas y persiste el registro en PostgreSQL.
@@ -117,6 +125,10 @@ async def _record_scan(
     try:
         geo = await _geo_service.lookup(ip_address)
         device = _ua_service.parse(user_agent_string)
+        geo_hash_5, geo_hash_7 = compute_scan_geohashes(
+            geo.latitude,
+            geo.longitude,
+        )
 
         scan = Scan(
             campaign_id=campaign_id,
@@ -125,6 +137,11 @@ async def _record_scan(
             state=geo.state,
             city=geo.city,
             geo_source="ip",
+            latitude=geo.latitude,
+            longitude=geo.longitude,
+            accuracy_meters=geo.accuracy_meters,
+            geo_hash_5=geo_hash_5,
+            geo_hash_7=geo_hash_7,
             device_type=device.device_type,
             os=device.os,
             browser=device.browser,
@@ -132,6 +149,17 @@ async def _record_scan(
 
         async with AsyncSessionLocal() as session:
             session.add(scan)
+            await session.flush()
+            if scan_token:
+                session.add(
+                    ScanSession(
+                        scan_id=scan.id,
+                        vehicle_qr_code_id=vehicle_qr_code_id,
+                        attribution_token=scan_token,
+                        landing_path=landing_path,
+                        expires_at=attribution_expires_at(),
+                    )
+                )
             await session.commit()
 
         logger.debug(
@@ -151,11 +179,47 @@ async def _record_scan(
         )
 
 
+async def _resolve_redirect_target(
+    campaign_id: str,
+    scan_token: str | None,
+) -> tuple[str, int | None, str]:
+    if campaign_id in settings.tracking_destinations or _should_record_analytics(campaign_id):
+        target = _build_redirect_target(settings.FRONTEND_URL, campaign_id, scan_token)
+        return target, None, "/enlaces"
+
+    async with AsyncSessionLocal() as session:
+        qr_code = (
+            await session.execute(
+                select(VehicleQRCode).where(
+                    VehicleQRCode.is_active.is_(True),
+                    (VehicleQRCode.qr_id == campaign_id)
+                    | (VehicleQRCode.public_slug == campaign_id),
+                )
+            )
+        ).scalar_one_or_none()
+    if not qr_code:
+        target = _build_redirect_target(settings.FRONTEND_URL, campaign_id, scan_token)
+        return target, None, "/enlaces"
+
+    path = f"/auto/{qr_code.public_slug}"
+    separator = "&" if "?" in path else "?"
+    target = f"{settings.FRONTEND_URL.rstrip('/')}{path}"
+    if scan_token:
+        target = f"{target}{separator}scan={scan_token}"
+    return target, qr_code.id, path
+
+
 def _clean_location_value(value: str | None) -> str | None:
     if not value:
         return None
     value = value.strip()
     return value[:100] if value else None
+
+
+def _clean_accuracy(value: int | None) -> int | None:
+    if value is None or value <= 0:
+        return None
+    return min(value, 100_000)
 
 
 async def _apply_browser_location(payload: BrowserLocationPayload) -> bool:
@@ -170,6 +234,13 @@ async def _apply_browser_location(payload: BrowserLocationPayload) -> bool:
                 scan.country = _clean_location_value(payload.country) or scan.country
                 scan.state = _clean_location_value(payload.state) or scan.state
                 scan.city = _clean_location_value(payload.city) or scan.city
+                scan.latitude = payload.latitude if payload.latitude is not None else scan.latitude
+                scan.longitude = payload.longitude if payload.longitude is not None else scan.longitude
+                scan.accuracy_meters = _clean_accuracy(payload.accuracy_meters) or scan.accuracy_meters
+                scan.geo_hash_5, scan.geo_hash_7 = compute_scan_geohashes(
+                    scan.latitude,
+                    scan.longitude,
+                )
                 scan.geo_source = "browser"
                 await session.commit()
                 logger.info(
@@ -222,24 +293,47 @@ async def redirect_campaign(
     """
     ip_address = _get_client_ip(request)
     user_agent_string = request.headers.get("User-Agent", "")
-    scan_token = secrets.token_urlsafe(32) if _should_record_analytics(campaign_id) else None
+    initial_tracking = _should_record_analytics(campaign_id)
+    provisional_token = secrets.token_urlsafe(32) if initial_tracking else None
+    target_url, vehicle_qr_code_id, landing_path = await _resolve_redirect_target(
+        campaign_id, provisional_token
+    )
+    should_record = initial_tracking or vehicle_qr_code_id is not None
+    scan_token = provisional_token or (secrets.token_urlsafe(32) if should_record else None)
+    if scan_token and not provisional_token:
+        target_url, vehicle_qr_code_id, landing_path = await _resolve_redirect_target(
+            campaign_id, scan_token
+        )
     logger.info(
         "Tracking request received: campaign=%r detected_ip=%r",
         campaign_id,
         ip_address,
     )
 
-    if _should_record_analytics(campaign_id):
+    if should_record:
         background_tasks.add_task(
             _record_scan,
             campaign_id=campaign_id,
             ip_address=ip_address,
             user_agent_string=user_agent_string,
             scan_token=scan_token,
+            vehicle_qr_code_id=vehicle_qr_code_id,
+            landing_path=landing_path,
         )
 
-    target_url = _build_redirect_target(settings.FRONTEND_URL, campaign_id, scan_token)
-    return RedirectResponse(url=target_url, status_code=302)
+    response = RedirectResponse(url=target_url, status_code=302)
+    if scan_token:
+        response.set_cookie(
+            "qr_attribution",
+            scan_token,
+            max_age=30 * 24 * 60 * 60,
+            httponly=True,
+            secure=request.url.scheme == "https",
+            samesite="lax",
+            path="/",
+            domain=settings.COOKIE_DOMAIN,
+        )
+    return response
 
 
 @router.post(

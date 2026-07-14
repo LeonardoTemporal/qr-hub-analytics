@@ -25,11 +25,11 @@ import logging
 from datetime import datetime, timedelta
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import distinct, func, select
 
-from app.auth import require_admin
 from app.database import AsyncSessionLocal
+from app.domains.admin.dependencies import require_admin_session
 from app.models import Scan
 
 logger = logging.getLogger(__name__)
@@ -72,8 +72,42 @@ def _campaign_filters(campaign_id: str | None) -> tuple:
     return ()
 
 
+def _scan_filters(
+    campaign_id: str | None,
+    range_: TimeRange | None = None,
+) -> tuple:
+    filters = list(_campaign_filters(campaign_id))
+    if range_:
+        filters.append(Scan.scanned_at >= _range_to_start(range_))
+    return tuple(filters)
+
+
 def _campaign_label(campaign_id: str | None) -> str:
     return campaign_id if campaign_id and campaign_id.lower() != "all" else "all"
+
+
+def _location_display(scan: Scan) -> str:
+    parts = [scan.city, scan.state, scan.country]
+    return ", ".join(part for part in parts if part) or "Unknown"
+
+
+def _normalise_scan_sort(sort_by: str, sort_order: str):
+    sort_columns = {
+        "id": Scan.id,
+        "campaign_id": Scan.campaign_id,
+        "scanned_at": Scan.scanned_at,
+        "city": Scan.city,
+        "state": Scan.state,
+        "device_type": Scan.device_type,
+        "os": Scan.os,
+        "browser": Scan.browser,
+    }
+    column = sort_columns.get(sort_by)
+    if column is None:
+        raise ValueError("sort_by must be one of: " + ", ".join(sort_columns))
+    if sort_order not in {"asc", "desc"}:
+        raise ValueError("sort_order must be asc or desc")
+    return column.asc() if sort_order == "asc" else column.desc()
 
 
 async def _build_kpis(session, campaign_id: str | None = None) -> dict:
@@ -136,13 +170,14 @@ async def _name_value_rows(
     session,
     column,
     campaign_id: str | None = None,
+    range_: TimeRange | None = None,
     limit: int = 10,
 ) -> list[dict[str, int | str]]:
     rows = (
         await session.execute(
             select(column.label("name"), func.count(Scan.id).label("count"))
             .where(
-                *_campaign_filters(campaign_id),
+                *_scan_filters(campaign_id, range_),
                 column.isnot(None),
             )
             .group_by(column)
@@ -162,14 +197,128 @@ async def _build_distribution(session, campaign_id: str | None = None) -> dict:
     }
 
 
-async def _build_geo(session, campaign_id: str | None = None) -> dict:
-    cities = await _name_value_rows(session, Scan.city, campaign_id, limit=20)
+async def _build_geo_clusters(
+    session,
+    campaign_id: str | None = None,
+    range_: TimeRange | None = None,
+) -> list[dict]:
+    rows = (
+        await session.execute(
+            select(
+                Scan.geo_hash_5.label("geo_hash_5"),
+                func.avg(Scan.latitude).label("latitude"),
+                func.avg(Scan.longitude).label("longitude"),
+                func.count(Scan.id).label("scan_count"),
+                func.count(
+                    distinct(
+                        func.concat(
+                            func.coalesce(Scan.device_type, "unknown"),
+                            "|",
+                            func.coalesce(Scan.os, "unknown"),
+                            "|",
+                            func.coalesce(Scan.browser, "unknown"),
+                        )
+                    )
+                ).label("unique_devices"),
+                func.max(Scan.device_type).label("top_device_type"),
+                func.max(Scan.os).label("top_os"),
+            )
+            .where(
+                *_scan_filters(campaign_id, range_),
+                Scan.geo_hash_5.isnot(None),
+                Scan.latitude.isnot(None),
+                Scan.longitude.isnot(None),
+            )
+            .group_by(Scan.geo_hash_5)
+            .order_by(func.count(Scan.id).desc())
+            .limit(200)
+        )
+    ).all()
+    return [
+        {
+            "geo_hash_5": row.geo_hash_5,
+            "latitude": float(row.latitude),
+            "longitude": float(row.longitude),
+            "scan_count": row.scan_count,
+            "unique_devices": row.unique_devices,
+            "top_device_type": row.top_device_type,
+            "top_os": row.top_os,
+        }
+        for row in rows
+    ]
+
+
+async def _build_geo(
+    session,
+    campaign_id: str | None = None,
+    range_: TimeRange | None = None,
+) -> dict:
+    cities = await _name_value_rows(session, Scan.city, campaign_id, range_, limit=20)
     return {
         "campaign_id": _campaign_label(campaign_id),
-        "countries": await _name_value_rows(session, Scan.country, campaign_id),
-        "states": await _name_value_rows(session, Scan.state, campaign_id, limit=20),
+        "countries": await _name_value_rows(session, Scan.country, campaign_id, range_),
+        "states": await _name_value_rows(session, Scan.state, campaign_id, range_, limit=20),
         "municipalities": cities,
         "cities": cities,
+        "clusters": await _build_geo_clusters(session, campaign_id, range_),
+    }
+
+
+async def _build_scan_details(
+    session,
+    campaign_id: str | None = None,
+    range_: TimeRange = "30d",
+    page: int = 1,
+    page_size: int = 25,
+    sort_by: str = "scanned_at",
+    sort_order: str = "desc",
+) -> dict:
+    try:
+        order_by = _normalise_scan_sort(sort_by, sort_order)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    filters = _scan_filters(campaign_id, range_)
+    offset = (page - 1) * page_size
+    total = (
+        await session.execute(select(func.count(Scan.id)).where(*filters))
+    ).scalar() or 0
+    rows = (
+        await session.execute(
+            select(Scan)
+            .where(*filters)
+            .order_by(order_by)
+            .offset(offset)
+            .limit(page_size)
+        )
+    ).scalars().all()
+
+    return {
+        "items": [
+            {
+                "id": scan.id,
+                "campaign_id": scan.campaign_id,
+                "scan_token": scan.scan_token,
+                "country": scan.country,
+                "state": scan.state,
+                "city": scan.city,
+                "location_display": _location_display(scan),
+                "latitude": scan.latitude,
+                "longitude": scan.longitude,
+                "accuracy_meters": scan.accuracy_meters,
+                "geo_source": scan.geo_source,
+                "device_type": scan.device_type,
+                "os": scan.os,
+                "browser": scan.browser,
+                "scanned_at": scan.scanned_at.isoformat(),
+            }
+            for scan in rows
+        ],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "sort_by": sort_by,
+        "sort_order": sort_order,
     }
 
 
@@ -214,7 +363,7 @@ async def _build_timeline(
     tags=["analytics"],
 )
 async def get_kpis(
-    _: Annotated[str, Depends(require_admin)],
+    _: Annotated[str, Depends(require_admin_session)],
     campaign_id: str | None = Query(default=None),
 ):
     async with AsyncSessionLocal() as session:
@@ -227,7 +376,7 @@ async def get_kpis(
     tags=["analytics"],
 )
 async def get_distribution_global(
-    _: Annotated[str, Depends(require_admin)],
+    _: Annotated[str, Depends(require_admin_session)],
     campaign_id: str | None = Query(default=None),
 ):
     async with AsyncSessionLocal() as session:
@@ -240,11 +389,38 @@ async def get_distribution_global(
     tags=["analytics"],
 )
 async def get_geo(
-    _: Annotated[str, Depends(require_admin)],
+    _: Annotated[str, Depends(require_admin_session)],
     campaign_id: str | None = Query(default=None),
+    range_: TimeRange | None = Query(default=None, alias="range"),
 ):
     async with AsyncSessionLocal() as session:
-        return await _build_geo(session, campaign_id)
+        return await _build_geo(session, campaign_id, range_)
+
+
+@router.get(
+    "/analytics/scans",
+    summary="Tabla paginada de escaneos QR",
+    tags=["analytics"],
+)
+async def get_scans(
+    _: Annotated[str, Depends(require_admin_session)],
+    campaign_id: str | None = Query(default=None),
+    range_: TimeRange = Query("30d", alias="range"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    sort_by: str = Query("scanned_at"),
+    sort_order: Literal["asc", "desc"] = Query("desc"),
+):
+    async with AsyncSessionLocal() as session:
+        return await _build_scan_details(
+            session,
+            campaign_id=campaign_id,
+            range_=range_,
+            page=page,
+            page_size=page_size,
+            sort_by=sort_by,
+            sort_order=sort_order,
+        )
 
 
 @router.get(
@@ -253,7 +429,7 @@ async def get_geo(
     tags=["analytics"],
 )
 async def get_timeline_global(
-    _: Annotated[str, Depends(require_admin)],
+    _: Annotated[str, Depends(require_admin_session)],
     campaign_id: str | None = Query(default=None),
     range_: TimeRange = Query("30d", alias="range"),
 ):
@@ -271,7 +447,7 @@ async def get_timeline_global(
 )
 async def get_summary(
     campaign_id: str,
-    _: Annotated[str, Depends(require_admin)],
+    _: Annotated[str, Depends(require_admin_session)],
 ):
     async with AsyncSessionLocal() as session:
         return await _build_kpis(session, campaign_id)
@@ -287,7 +463,7 @@ async def get_summary(
 )
 async def get_distribution(
     campaign_id: str,
-    _: Annotated[str, Depends(require_admin)],
+    _: Annotated[str, Depends(require_admin_session)],
 ):
     async with AsyncSessionLocal() as session:
         return await _build_distribution(session, campaign_id)
@@ -303,7 +479,7 @@ async def get_distribution(
 )
 async def get_location(
     campaign_id: str,
-    _: Annotated[str, Depends(require_admin)],
+    _: Annotated[str, Depends(require_admin_session)],
 ):
     async with AsyncSessionLocal() as session:
         return await _build_geo(session, campaign_id)
@@ -319,7 +495,7 @@ async def get_location(
 )
 async def get_timeline(
     campaign_id: str,
-    _: Annotated[str, Depends(require_admin)],
+    _: Annotated[str, Depends(require_admin_session)],
     range_: TimeRange = Query("30d", alias="range"),
 ):
     async with AsyncSessionLocal() as session:
@@ -336,7 +512,7 @@ async def get_timeline(
 )
 async def get_analytics_legacy(
     campaign_id: str,
-    _: Annotated[str, Depends(require_admin)],
+    _: Annotated[str, Depends(require_admin_session)],
 ):
     async with AsyncSessionLocal() as session:
         total = (
