@@ -8,7 +8,7 @@ import os
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal, engine
-from app.domains.admin.security import hash_password
+from app.domains.admin.security import hash_password, verify_password
 from app.models import AdminUser
 from app.uat import UATSeedResult, cleanup_uat, seed_uat
 
@@ -39,6 +39,36 @@ async def create_admin_and_close(username: str, password: str) -> None:
         await engine.dispose()
 
 
+async def verify_admin_credentials(username: str, password: str) -> bool:
+    async with AsyncSessionLocal() as session:
+        user = (
+            await session.execute(select(AdminUser).where(AdminUser.username == username))
+        ).scalar_one_or_none()
+        return bool(
+            user
+            and user.is_active
+            and verify_password(password, user.password_hash)
+        )
+
+
+async def verify_admin_and_close(username: str, password: str) -> bool:
+    try:
+        return await verify_admin_credentials(username, password)
+    finally:
+        await engine.dispose()
+
+
+def read_password(password_env: str | None, *, confirm: bool) -> str:
+    password = os.getenv(password_env) if password_env else None
+    if not password:
+        password = getpass.getpass("Admin password: ")
+        if confirm and password != getpass.getpass("Confirm admin password: "):
+            raise SystemExit("Admin passwords do not match")
+    if len(password) < 12:
+        raise SystemExit("Admin password must contain at least 12 characters")
+    return password
+
+
 async def seed_uat_and_close(pin: str) -> UATSeedResult:
     try:
         return await seed_uat(pin)
@@ -59,18 +89,23 @@ def main() -> None:
     create_admin = subparsers.add_parser("create-admin")
     create_admin.add_argument("--username", default="admin")
     create_admin.add_argument("--password-env")
+    verify_admin = subparsers.add_parser("verify-admin")
+    verify_admin.add_argument("--username", default="admin")
+    verify_admin.add_argument("--password-env")
     seed_release_uat = subparsers.add_parser("seed-uat")
     seed_release_uat.add_argument("--pin-env", required=True)
     subparsers.add_parser("cleanup-uat")
     args = parser.parse_args()
 
     if args.command == "create-admin":
-        password = os.getenv(args.password_env) if args.password_env else None
-        password = password or getpass.getpass("Admin password: ")
-        if len(password) < 12:
-            raise SystemExit("Admin password must contain at least 12 characters")
+        password = read_password(args.password_env, confirm=True)
         asyncio.run(create_admin_and_close(args.username, password))
         print(f"Admin user ready: {args.username}")
+    elif args.command == "verify-admin":
+        password = read_password(args.password_env, confirm=False)
+        if not asyncio.run(verify_admin_and_close(args.username, password)):
+            raise SystemExit("Admin credentials are invalid")
+        print(f"Admin credentials are valid: {args.username}")
     elif args.command == "seed-uat":
         pin = os.getenv(args.pin_env)
         if not pin:
