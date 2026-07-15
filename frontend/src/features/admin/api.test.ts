@@ -7,6 +7,7 @@ import {
   createWarrantyClaim,
   loginAdmin,
   uploadAdminMedia,
+  updateAdminCredentials,
   updateAdminWorkOrder,
   updateWarrantyClaim,
 } from "./api";
@@ -51,6 +52,26 @@ describe("admin API security", () => {
     const request = fetchMock.mock.calls[0][1] as RequestInit;
     expect(new Headers(request.headers).get("X-CSRF-Token")).toBe("csrf-token");
     expect(request.credentials).toBe("include");
+  });
+
+  it("updates credentials through the protected session and clears CSRF", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, { status: 204 }),
+    );
+    setCsrfToken("csrf-token");
+
+    await updateAdminCredentials({
+      current_password: "owner-password",
+      new_username: "owner.7f",
+      new_password: "a-stronger-password-2026",
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/auth/credentials",
+      expect.objectContaining({ method: "PATCH", credentials: "include" }),
+    );
+    const request = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(new Headers(request.headers).get("X-CSRF-Token")).toBe("csrf-token");
   });
 });
 

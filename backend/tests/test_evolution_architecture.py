@@ -73,6 +73,7 @@ def test_new_public_admin_and_tracking_routes_are_registered() -> None:
 
     assert "/api/admin/auth/login" in paths
     assert "/api/admin/auth/session" in paths
+    assert "/api/admin/auth/credentials" in paths
     assert "/api/admin/clients" in paths
     assert "/api/admin/vehicles" in paths
     assert "/api/admin/work-orders" in paths
@@ -89,6 +90,22 @@ def test_new_public_admin_and_tracking_routes_are_registered() -> None:
     assert "/api/admin/analytics/summary" in paths
     assert "/api/admin/analytics/timeline" in paths
     assert "/api/admin/analytics/sources" in paths
+
+
+def test_admin_credential_update_requires_a_real_change() -> None:
+    from app.domains.admin.router import AdminCredentialUpdate
+
+    with pytest.raises(ValidationError):
+        AdminCredentialUpdate(current_password="owner-password")
+
+    payload = AdminCredentialUpdate(
+        current_password="owner-password",
+        new_username="  owner.7f  ",
+        new_password="a-stronger-password-2026",
+    )
+
+    assert payload.new_username == "owner.7f"
+    assert payload.new_password == "a-stronger-password-2026"
 
 
 def test_redirect_response_sets_first_party_attribution_cookie(monkeypatch) -> None:

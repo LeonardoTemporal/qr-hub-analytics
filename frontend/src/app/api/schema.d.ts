@@ -422,6 +422,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/auth/credentials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Credentials */
+        patch: operations["update_credentials_api_admin_auth_credentials_patch"];
+        trace?: never;
+    };
     "/api/admin/auth/logout": {
         parameters: {
             query?: never;
@@ -947,6 +964,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminCredentialUpdate */
+        AdminCredentialUpdate: {
+            /** Current Password */
+            current_password: string;
+            /** New Username */
+            new_username?: string | null;
+            /** New Password */
+            new_password?: string | null;
+        };
         /** AdminLoginRequest */
         AdminLoginRequest: {
             /** Username */
@@ -2778,6 +2804,41 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AdminSessionResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_credentials_api_admin_auth_credentials_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-csrf-token"?: string | null;
+            };
+            path?: never;
+            cookie?: {
+                admin_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCredentialUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

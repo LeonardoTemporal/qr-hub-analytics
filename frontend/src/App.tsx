@@ -15,6 +15,7 @@ const MediaPage = lazy(() => import("./features/admin/pages/MediaPage"));
 const OrdersPage = lazy(() => import("./features/admin/pages/OrdersPage"));
 const PortalAuth = lazy(() => import("./pages/PortalAuth"));
 const PublicationPage = lazy(() => import("./features/admin/pages/PublicationPage"));
+const SecurityPage = lazy(() => import("./features/admin/pages/SecurityPage"));
 const ShowcasePage = lazy(() => import("./pages/ShowcasePage"));
 const WorkshopPage = lazy(() => import("./features/admin/pages/WorkshopPage"));
 const WarrantiesPage = lazy(() => import("./features/admin/pages/WarrantiesPage"));
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="media" element={<MediaPage />} />
             <Route path="publication" element={<PublicationPage />} />
             <Route path="analytics" element={<DashboardPage />} />
+            <Route path="security" element={<SecurityPage />} />
           </Route>
         </Route>
 

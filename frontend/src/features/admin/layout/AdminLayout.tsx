@@ -8,6 +8,7 @@ import {
   LogOut,
   Search,
   Send,
+  Settings2,
   ShieldCheck,
   Wrench,
   X,
@@ -25,6 +26,7 @@ const navigation = [
   { to: "/admin/media", label: "Media", icon: Camera },
   { to: "/admin/publication", label: "Publicar", icon: Send },
   { to: "/admin/analytics", label: "Analiticas", icon: BarChart3 },
+  { to: "/admin/security", label: "Seguridad", icon: Settings2 },
 ];
 
 export default function AdminLayout() {
@@ -108,7 +110,7 @@ export default function AdminLayout() {
 
       <div className="pb-20 lg:ml-[220px] lg:pb-0"><Outlet /></div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 overflow-x-auto border-t border-white/[0.07] bg-black/90 backdrop-blur-xl lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-50 flex h-16 overflow-x-auto border-t border-white/[0.07] bg-black/90 [scrollbar-width:none] backdrop-blur-xl [&::-webkit-scrollbar]:hidden lg:hidden">
         {navigation.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={({ isActive }) => `focus-ring grid min-w-[74px] flex-1 place-items-center text-[8px] uppercase tracking-[0.08em] ${isActive ? "text-white" : "text-[#626262]"}`}>
             <span className="grid place-items-center gap-1"><Icon size={15} /><span>{label}</span></span>

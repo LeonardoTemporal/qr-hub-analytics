@@ -4,6 +4,8 @@ import type { components } from "../../app/api/schema";
 export type AdminSession = components["schemas"]["AdminSessionResponse"];
 export type AdminLoginInput = components["schemas"]["AdminLoginRequest"];
 
+export type AdminCredentialUpdate = components["schemas"]["AdminCredentialUpdate"];
+
 export interface AdminOverview {
   clients: number;
   vehicles: number;
@@ -129,6 +131,14 @@ export async function fetchAdminSession(): Promise<AdminSession> {
 
 export async function logoutAdmin(): Promise<void> {
   await apiRequest<void>("/api/admin/auth/logout", { method: "POST" });
+  setCsrfToken(null);
+}
+
+export async function updateAdminCredentials(input: AdminCredentialUpdate): Promise<void> {
+  await apiRequest<void>("/api/admin/auth/credentials", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
   setCsrfToken(null);
 }
 

@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useAdminSession } from "../auth/AdminSessionProvider";
 
@@ -14,7 +14,14 @@ export default function AdminLoginPage() {
   const { session, login } = useAdminSession();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
+  const routeState = location.state as { from?: string; notice?: string } | null;
+  const notice = routeState?.notice ?? (
+    searchParams.get("credentials") === "updated"
+      ? "Credenciales actualizadas. Inicia sesion de nuevo para continuar."
+      : null
+  );
   const {
     register,
     handleSubmit,
@@ -27,7 +34,7 @@ export default function AdminLoginPage() {
     setServerError(null);
     try {
       await login(fields);
-      const destination = (location.state as { from?: string } | null)?.from ?? "/admin";
+      const destination = routeState?.from ?? "/admin";
       navigate(destination, { replace: true });
     } catch (error) {
       setServerError(error instanceof Error ? error.message : "No se pudo iniciar sesion");
@@ -59,6 +66,11 @@ export default function AdminLoginPage() {
           onSubmit={submit}
           className="rounded-[6px] border border-white/[0.08] bg-white/[0.025] p-6 backdrop-blur-xl"
         >
+          {notice ? (
+            <div className="mb-5 border-l border-white/40 bg-white/[0.035] px-4 py-3 text-[12px] leading-relaxed text-[#b8b8b8]">
+              {notice}
+            </div>
+          ) : null}
           <label className="block">
             <span className="mb-2 block font-mono text-[9px] uppercase tracking-[0.2em] text-[#707070]">
               Usuario
