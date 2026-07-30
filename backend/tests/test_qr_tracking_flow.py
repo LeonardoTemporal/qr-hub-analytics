@@ -178,6 +178,7 @@ def test_nginx_has_unspoofable_global_qr_circuit_breaker() -> None:
 
     assert "zone=qr_global" in nginx_config
     assert "limit_req zone=qr_global" in nginx_config
+    assert "proxy_hide_header Referrer-Policy;" in nginx_config
 
 
 def test_browser_location_rejects_direct_api_bypass(monkeypatch) -> None:
