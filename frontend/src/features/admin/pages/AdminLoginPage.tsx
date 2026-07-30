@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, LockKeyhole } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router";
 
 import { useAdminSession } from "../auth/AdminSessionProvider";
 

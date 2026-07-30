@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -324,6 +325,21 @@ class WorkshopProfileUpdate(BaseModel):
     service_areas: list | None = None
     instagram_url: str | None = None
     is_published: bool | None = None
+
+    @field_validator("instagram_url")
+    @classmethod
+    def validate_instagram_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        parsed = urlparse(normalized)
+        if (
+            parsed.scheme != "https"
+            or (parsed.hostname or "").lower()
+            not in {"instagram.com", "www.instagram.com"}
+        ):
+            raise ValueError("instagram_url must use HTTPS on instagram.com")
+        return normalized
 
 
 class WorkshopProfileRead(ORMModel):

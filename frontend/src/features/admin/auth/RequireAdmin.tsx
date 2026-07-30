@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router";
 
 import { RouteLoading } from "../../../ui/RouteState";
 import { useAdminSession } from "./AdminSessionProvider";

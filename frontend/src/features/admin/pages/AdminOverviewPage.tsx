@@ -13,7 +13,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 
 import GlassPanel from "../../../ui/GlassPanel";
 import { InlineError } from "../../../ui/RouteState";

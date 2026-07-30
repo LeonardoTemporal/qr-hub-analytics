@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,8 +14,15 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql+asyncpg://qrhub:qrhub_secret@postgres:5432/qrhub"
     FRONTEND_URL: str = "http://localhost:3000"
-    GEOIP_API_URL: str = "http://ip-api.com/json"
+    GEOIP_API_URL: str = "https://ipwho.is"
     GEOIP_TIMEOUT_SECONDS: float = 2.5
+    QR_RATE_LIMIT_PER_MINUTE: int = 120
+    BROWSER_LOCATION_RATE_LIMIT_PER_MINUTE: int = 4
+    TRACKING_EVENT_RATE_LIMIT_PER_MINUTE: int = 20
+    ADMIN_LOGIN_RATE_LIMIT_PER_MINUTE: int = 5
+    QR_COOKIE_SECURE: bool = False
+    TRUST_PROXY_HEADERS: bool = True
+    INTERNAL_PROXY_SECRET: str = ""
     DEFAULT_CAMPAIGN_ID: str = "7fitment"
     TRACKING_ANALYTICS_CAMPAIGNS: str = "qr_general"
     TRACKING_WHATSAPP_URL: str = (
@@ -46,6 +55,14 @@ class Settings(BaseSettings):
     WORKER_POLL_SECONDS: float = 2.0
     ADMIN_COOKIE_SECURE: bool = False
     COOKIE_DOMAIN: str | None = None
+
+    @field_validator("GEOIP_API_URL")
+    @classmethod
+    def require_https_geoip_url(cls, value: str) -> str:
+        normalized = value.strip().rstrip("/")
+        if urlparse(normalized).scheme.lower() != "https":
+            raise ValueError("GEOIP_API_URL must use HTTPS")
+        return normalized
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

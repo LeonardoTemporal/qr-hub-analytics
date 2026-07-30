@@ -2,7 +2,8 @@ import { MapPin, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { submitBrowserLocation } from "../lib/api";
 
-const STORAGE_KEY = "location_permission_granted";
+const STORAGE_KEY = "location_permission_preference_v2";
+const PREFERENCE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 interface ReverseGeocodeAddress {
   country?: string;
@@ -20,23 +21,45 @@ interface ReverseGeocodeResponse {
   address?: ReverseGeocodeAddress;
 }
 
-function readScanToken(): string | null {
-  const params = new URLSearchParams(window.location.search);
-  return params.get("scan");
+interface StoredPreference {
+  decision: "granted" | "denied";
+  expiresAt: number;
 }
 
-function clearScanToken(): void {
+function readQrMarker(): boolean {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("qr") === "1";
+}
+
+function clearQrMarker(): void {
   const url = new URL(window.location.href);
-  if (!url.searchParams.has("scan")) return;
-  url.searchParams.delete("scan");
+  if (!url.searchParams.has("qr")) return;
+  url.searchParams.delete("qr");
   window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 function getStoredPreference(): "granted" | "denied" | null {
-  const value = window.localStorage.getItem(STORAGE_KEY);
-  if (value === "true") return "granted";
-  if (value === "false") return "denied";
-  return null;
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(STORAGE_KEY) ?? "null",
+    ) as StoredPreference | null;
+    if (!stored || stored.expiresAt <= Date.now()) {
+      window.localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return stored.decision;
+  } catch {
+    window.localStorage.removeItem(STORAGE_KEY);
+    return null;
+  }
+}
+
+function storePreference(decision: "granted" | "denied"): void {
+  const preference: StoredPreference = {
+    decision,
+    expiresAt: Date.now() + PREFERENCE_TTL_MS,
+  };
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preference));
 }
 
 function getCurrentPosition(): Promise<GeolocationPosition> {
@@ -80,17 +103,17 @@ async function reverseGeocode(latitude: number, longitude: number) {
 }
 
 export default function LocationSoftPrompt() {
-  const scanToken = useMemo(readScanToken, []);
+  const isQrVisit = useMemo(readQrMarker, []);
   const [visible, setVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const finish = useCallback(() => {
-    clearScanToken();
+    clearQrMarker();
     setVisible(false);
   }, []);
 
   const submitPreciseLocation = useCallback(async () => {
-    if (!scanToken || !("geolocation" in navigator)) {
+    if (!isQrVisit || !("geolocation" in navigator)) {
       finish();
       return;
     }
@@ -98,28 +121,40 @@ export default function LocationSoftPrompt() {
     setSubmitting(true);
     try {
       const position = await getCurrentPosition();
+      const latitude = Math.round(position.coords.latitude * 1000) / 1000;
+      const longitude = Math.round(position.coords.longitude * 1000) / 1000;
       const location = await reverseGeocode(
-        position.coords.latitude,
-        position.coords.longitude,
+        latitude,
+        longitude,
       );
-      await submitBrowserLocation({
-        scan_token: scanToken,
+      const payload = {
         ...location,
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy_meters: Math.max(1, Math.round(position.coords.accuracy || 10)),
-      });
-      window.localStorage.setItem(STORAGE_KEY, "true");
+        latitude,
+        longitude,
+        accuracy_meters: Math.max(
+          100,
+          Math.round(position.coords.accuracy || 100),
+        ),
+      };
+      let updated = false;
+      for (let attempt = 0; attempt < 4 && !updated; attempt += 1) {
+        updated = await submitBrowserLocation(payload);
+        if (!updated) {
+          await new Promise((resolve) => window.setTimeout(resolve, 300));
+        }
+      }
+      if (!updated) throw new Error("La sesion QR aun no esta disponible");
+      storePreference("granted");
     } catch {
-      window.localStorage.setItem(STORAGE_KEY, "false");
+      storePreference("denied");
     } finally {
       setSubmitting(false);
       finish();
     }
-  }, [finish, scanToken]);
+  }, [finish, isQrVisit]);
 
   useEffect(() => {
-    if (!scanToken) return;
+    if (!isQrVisit) return;
 
     const preference = getStoredPreference();
     if (preference === "granted") {
@@ -127,21 +162,21 @@ export default function LocationSoftPrompt() {
       return;
     }
     if (preference === "denied") {
-      clearScanToken();
+      clearQrMarker();
       return;
     }
     if (!("geolocation" in navigator)) {
-      window.localStorage.setItem(STORAGE_KEY, "false");
-      clearScanToken();
+      storePreference("denied");
+      clearQrMarker();
       return;
     }
 
     const timer = window.setTimeout(() => setVisible(true), 900);
     return () => window.clearTimeout(timer);
-  }, [scanToken, submitPreciseLocation]);
+  }, [isQrVisit, submitPreciseLocation]);
 
   const decline = () => {
-    window.localStorage.setItem(STORAGE_KEY, "false");
+    storePreference("denied");
     finish();
   };
 
@@ -176,8 +211,9 @@ export default function LocationSoftPrompt() {
             Servicios cerca de tu zona.
           </h2>
           <p className="mt-4 text-[14px] leading-6 text-[#9a9a9a]">
-            Para ofrecerte una experiencia personalizada y mostrarte la disponibilidad
-            de servicios en CDMX/EdoMex, necesitamos conocer tu ubicación.
+            Si aceptas, tu navegador compartirá una ubicación aproximada con
+            7Fitment y OpenStreetMap para identificar tu zona y personalizar la
+            disponibilidad en CDMX/EdoMex. La preferencia vence en 30 días.
           </p>
 
           <div className="mt-6 h-px w-full bg-white/10" aria-hidden="true" />

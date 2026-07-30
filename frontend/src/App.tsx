@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router";
 
 import RequireAdmin from "./features/admin/auth/RequireAdmin";
 import AdminLayout from "./features/admin/layout/AdminLayout";

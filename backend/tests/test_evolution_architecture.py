@@ -4,7 +4,9 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from fastapi import HTTPException
 from pydantic import ValidationError
+from starlette.requests import Request
 
 
 def test_evolution_tables_are_registered_in_metadata() -> None:
@@ -58,6 +60,40 @@ def test_admin_session_token_exposes_only_digest_for_storage() -> None:
     assert len(digest) == 64
 
 
+def test_admin_login_rate_limit_blocks_repeated_attempts(monkeypatch) -> None:
+    import asyncio
+
+    from app.domains.admin import router
+    from app.services.rate_limit_service import SlidingWindowRateLimiter
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/admin/auth/login",
+            "headers": [],
+            "client": ("203.0.113.10", 12345),
+            "server": ("testserver", 80),
+            "scheme": "https",
+            "query_string": b"",
+        }
+    )
+    monkeypatch.setattr(
+        router,
+        "_admin_login_rate_limiter",
+        SlidingWindowRateLimiter(clock=lambda: 10.0),
+    )
+    monkeypatch.setattr(router.settings, "ADMIN_LOGIN_RATE_LIMIT_PER_MINUTE", 2)
+
+    asyncio.run(router._enforce_admin_login_rate_limit(request))
+    asyncio.run(router._enforce_admin_login_rate_limit(request))
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(router._enforce_admin_login_rate_limit(request))
+
+    assert exc_info.value.status_code == 429
+    assert exc_info.value.headers == {"Retry-After": "60"}
+
+
 def test_attribution_window_is_valid_for_thirty_days() -> None:
     from app.domains.tracking.service import attribution_expires_at
 
@@ -108,6 +144,20 @@ def test_admin_credential_update_requires_a_real_change() -> None:
     assert payload.new_password == "a-stronger-password-2026"
 
 
+def test_workshop_profile_rejects_unsafe_instagram_url() -> None:
+    from app.domains.workshop.schemas import WorkshopProfileUpdate
+
+    with pytest.raises(ValidationError):
+        WorkshopProfileUpdate(instagram_url="javascript:alert(1)")
+    with pytest.raises(ValidationError):
+        WorkshopProfileUpdate(instagram_url="https://example.com/7fitment")
+
+    payload = WorkshopProfileUpdate(
+        instagram_url="https://www.instagram.com/7fitment/"
+    )
+    assert payload.instagram_url == "https://www.instagram.com/7fitment/"
+
+
 def test_redirect_response_sets_first_party_attribution_cookie(monkeypatch) -> None:
     import asyncio
 
@@ -116,8 +166,8 @@ def test_redirect_response_sets_first_party_attribution_cookie(monkeypatch) -> N
 
     from app.routers import redirect
 
-    async def noop_record_scan(*_args, **_kwargs) -> None:
-        return None
+    async def noop_record_scan(*_args, **_kwargs) -> int:
+        return 77
 
     monkeypatch.setattr(redirect, "_record_scan", noop_record_scan)
 
@@ -261,6 +311,16 @@ def test_portal_token_secret_never_silently_uses_an_empty_key(monkeypatch) -> No
 
     monkeypatch.setattr(security.settings, "PORTAL_TOKEN_SECRET", None)
     monkeypatch.setattr(security.settings, "ADMIN_PASSWORD", "")
+
+    with pytest.raises(RuntimeError, match="PORTAL_TOKEN_SECRET"):
+        security.create_portal_token(7)
+
+
+def test_portal_token_secret_never_reuses_admin_password(monkeypatch) -> None:
+    from app import security
+
+    monkeypatch.setattr(security.settings, "PORTAL_TOKEN_SECRET", None)
+    monkeypatch.setattr(security.settings, "ADMIN_PASSWORD", "admin-only-secret")
 
     with pytest.raises(RuntimeError, match="PORTAL_TOKEN_SECRET"):
         security.create_portal_token(7)

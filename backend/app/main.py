@@ -21,6 +21,7 @@ from app.domains.public import router as public_router
 from app.domains.tracking import router as tracking_router
 from app.domains.workshop import router as workshop_router
 from app.routers import analytics, auth, garage, redirect
+from app.request_limits import RequestBodyLimitMiddleware
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,6 +54,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
     allow_headers=["*"],
+)
+app.add_middleware(
+    RequestBodyLimitMiddleware,
+    limits={
+        "/api/analytics/browser-location": 8_192,
+        "/api/tracking/events": 16_384,
+    },
 )
 
 # Compatibility routers remain available while clients migrate by domain.

@@ -15,7 +15,6 @@ export default function EnlacesPage() {
     void trackQrEvent({
       event_type: "destination_view",
       path: "/enlaces",
-      idempotency_key: `enlaces-view-${crypto.randomUUID()}`,
     });
   }, []);
 
@@ -155,7 +154,7 @@ export default function EnlacesPage() {
                   void trackQrEvent({
                     event_type: "cta_click",
                     path: "/enlaces",
-                    element_id: item.label.toLowerCase().replace(/\s+/g, "-"),
+                    element_id: item.analyticsId,
                     metadata: { destination: item.href },
                   });
                 }}

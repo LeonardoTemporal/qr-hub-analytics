@@ -68,7 +68,7 @@ def _clean_coordinate(value: Any) -> float | None:
 
 class IPApiGeoService:
     """
-    Resuelve IPs publicas usando http://ip-api.com/json/{ip}.
+    Resuelve IPs publicas usando un proveedor GeoIP HTTPS.
 
     El timeout por defecto es 2.5s para proteger la velocidad percibida del
     redirect. IPs privadas/locales devuelven Unknown sin hacer llamada externa.
@@ -76,7 +76,7 @@ class IPApiGeoService:
 
     def __init__(
         self,
-        base_url: str = "http://ip-api.com/json",
+        base_url: str = "https://ipwho.is",
         timeout_seconds: float = 2.5,
     ) -> None:
         self._base_url = base_url.rstrip("/")
@@ -85,37 +85,51 @@ class IPApiGeoService:
     async def lookup(self, ip_address: str) -> GeoLocation:
         ip_address = _normalise_ip(ip_address)
         if not ip_address or not _is_public_ip(ip_address):
-            logger.info("Skipping IP geolocation for non-public IP: %r", ip_address)
+            logger.debug("Skipping IP geolocation for non-public or invalid address")
             return GeoLocation()
 
         try:
             async with httpx.AsyncClient(timeout=self._timeout_seconds) as client:
+                request_options: dict[str, Any] = {}
+                if "ip-api.com" in self._base_url:
+                    request_options["params"] = {
+                        "fields": "status,country,regionName,city,lat,lon,message",
+                    }
                 response = await client.get(
                     f"{self._base_url}/{ip_address}",
-                    params={
-                        "fields": "status,country,regionName,city,lat,lon,message",
-                    },
+                    **request_options,
                 )
             response.raise_for_status()
             payload = response.json()
         except (httpx.HTTPError, ValueError) as exc:
-            logger.debug("IP geolocation failed for %r: %s", ip_address, exc)
+            logger.debug("IP geolocation request failed: %s", exc)
             return GeoLocation()
 
-        if payload.get("status") != "success":
+        lookup_succeeded = (
+            payload.get("status") == "success"
+            or payload.get("success") is True
+        )
+        if not lookup_succeeded:
             logger.debug(
-                "IP geolocation returned non-success for %r: %r",
-                ip_address,
+                "IP geolocation returned non-success: %r",
                 payload.get("message"),
             )
             return GeoLocation()
 
         return GeoLocation(
-            country=_clean_location(payload.get("country")),
-            state=_clean_location(payload.get("regionName")),
+            country=_clean_location(
+                payload.get("country") or payload.get("country_name")
+            ),
+            state=_clean_location(
+                payload.get("regionName") or payload.get("region")
+            ),
             city=_clean_location(payload.get("city")),
-            latitude=_clean_coordinate(payload.get("lat")),
-            longitude=_clean_coordinate(payload.get("lon")),
+            latitude=_clean_coordinate(
+                payload.get("lat", payload.get("latitude"))
+            ),
+            longitude=_clean_coordinate(
+                payload.get("lon", payload.get("longitude"))
+            ),
             accuracy_meters=5000,
         )
 

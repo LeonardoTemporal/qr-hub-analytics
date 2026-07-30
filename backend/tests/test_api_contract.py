@@ -57,7 +57,7 @@ def test_redirect_target_uses_frontend_enlaces_without_double_slashes() -> None:
         "https://7fitment.com",
         "qr_general",
         "scan-token-123",
-    ) == "https://7fitment.com/enlaces?scan=scan-token-123"
+    ) == "https://7fitment.com/enlaces?qr=1"
 
 
 def test_web_tracking_campaigns_redirect_to_social_destinations() -> None:
@@ -81,8 +81,8 @@ def test_tracking_endpoint_returns_social_redirect_without_following(
 
     from app.routers import redirect
 
-    async def noop_record_scan(*_args, **_kwargs) -> None:
-        return None
+    async def noop_record_scan(*_args, **_kwargs) -> int:
+        return 77
 
     monkeypatch.setattr(redirect, "_record_scan", noop_record_scan)
 
@@ -114,8 +114,8 @@ def test_qr_general_tracking_endpoint_enqueues_analytics(monkeypatch) -> None:
 
     from app.routers import redirect
 
-    async def noop_record_scan(*_args, **_kwargs) -> None:
-        return None
+    async def noop_record_scan(*_args, **_kwargs) -> int:
+        return 77
 
     monkeypatch.setattr(redirect, "_record_scan", noop_record_scan)
 
@@ -137,14 +137,16 @@ def test_qr_general_tracking_endpoint_enqueues_analytics(monkeypatch) -> None:
     )
 
     assert response.status_code == 302
-    assert response.headers["location"].startswith("https://7fitment.com/enlaces?scan=")
+    assert response.headers["location"] == "https://7fitment.com/enlaces?qr=1"
     assert len(background_tasks.tasks) == 1
 
 
-def test_client_ip_prefers_forwarded_headers() -> None:
+def test_client_ip_prefers_forwarded_headers(monkeypatch) -> None:
     from starlette.requests import Request
 
-    from app.routers.redirect import _get_client_ip
+    from app.routers import redirect
+
+    monkeypatch.setattr(redirect.settings, "INTERNAL_PROXY_SECRET", "test-proxy-secret")
 
     request = Request(
         {
@@ -155,6 +157,7 @@ def test_client_ip_prefers_forwarded_headers() -> None:
                 (b"cf-connecting-ip", b"198.51.100.40"),
                 (b"x-forwarded-for", b"203.0.113.10, 10.0.0.4"),
                 (b"x-real-ip", b"198.51.100.20"),
+                (b"x-qrhub-proxy-secret", b"test-proxy-secret"),
             ],
             "client": ("127.0.0.1", 12345),
             "server": ("testserver", 80),
@@ -163,13 +166,15 @@ def test_client_ip_prefers_forwarded_headers() -> None:
         }
     )
 
-    assert _get_client_ip(request) == "198.51.100.40"
+    assert redirect._get_client_ip(request) == "198.51.100.40"
 
 
-def test_client_ip_falls_back_to_first_forwarded_ip() -> None:
+def test_client_ip_falls_back_to_first_forwarded_ip(monkeypatch) -> None:
     from starlette.requests import Request
 
-    from app.routers.redirect import _get_client_ip
+    from app.routers import redirect
+
+    monkeypatch.setattr(redirect.settings, "INTERNAL_PROXY_SECRET", "test-proxy-secret")
 
     request = Request(
         {
@@ -179,6 +184,7 @@ def test_client_ip_falls_back_to_first_forwarded_ip() -> None:
             "headers": [
                 (b"x-forwarded-for", b"203.0.113.10, 10.0.0.4"),
                 (b"x-real-ip", b"198.51.100.20"),
+                (b"x-qrhub-proxy-secret", b"test-proxy-secret"),
             ],
             "client": ("127.0.0.1", 12345),
             "server": ("testserver", 80),
@@ -187,7 +193,7 @@ def test_client_ip_falls_back_to_first_forwarded_ip() -> None:
         }
     )
 
-    assert _get_client_ip(request) == "203.0.113.10"
+    assert redirect._get_client_ip(request) == "203.0.113.10"
 
 
 def test_ip_api_geo_service_maps_state_and_city(monkeypatch) -> None:
@@ -262,6 +268,58 @@ def test_ip_api_geo_service_maps_coordinates(monkeypatch) -> None:
     assert geo.latitude == 19.4326
     assert geo.longitude == -99.1332
     assert geo.accuracy_meters == 5000
+
+
+def test_geo_service_supports_https_ipwho_payload(monkeypatch) -> None:
+    import httpx
+
+    from app.services.geo_service import IPApiGeoService
+
+    class DummyClient:
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args) -> None:
+            return None
+
+        async def get(self, url: str, **kwargs):
+            assert url == "https://ipwho.is/8.8.8.8"
+            assert "params" not in kwargs
+            return httpx.Response(
+                200,
+                json={
+                    "success": True,
+                    "country": "United States",
+                    "region": "California",
+                    "city": "Mountain View",
+                    "latitude": 37.386,
+                    "longitude": -122.0838,
+                },
+                request=httpx.Request("GET", url),
+            )
+
+    monkeypatch.setattr("app.services.geo_service.httpx.AsyncClient", DummyClient)
+
+    geo = asyncio.run(IPApiGeoService().lookup("8.8.8.8"))
+
+    assert geo.country == "United States"
+    assert geo.state == "California"
+    assert geo.city == "Mountain View"
+    assert geo.latitude == 37.386
+    assert geo.longitude == -122.0838
+
+
+def test_geoip_configuration_rejects_plain_http() -> None:
+    import pytest
+    from pydantic import ValidationError
+
+    from app.config import Settings
+
+    with pytest.raises(ValidationError, match="GEOIP_API_URL must use HTTPS"):
+        Settings(GEOIP_API_URL="http://ipwho.is")
 
 
 def test_compute_scan_geohashes_returns_level_5_and_7() -> None:

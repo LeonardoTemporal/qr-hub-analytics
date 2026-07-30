@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import ipaddress
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
@@ -19,9 +21,12 @@ from app.domains.admin.security import (
     verify_password,
 )
 from app.models import AdminSession, AdminUser, AuditLog
+from app.services.proxy_service import is_trusted_internal_proxy
+from app.services.rate_limit_service import SlidingWindowRateLimiter
 
 router = APIRouter(prefix="/admin/auth", tags=["admin-auth"])
 SESSION_TTL = timedelta(hours=12)
+_admin_login_rate_limiter = SlidingWindowRateLimiter(max_keys=10_000)
 
 
 class AdminLoginRequest(BaseModel):
@@ -65,6 +70,40 @@ def _request_ip(request: Request) -> str | None:
     return request.client.host if request.client else None
 
 
+def _admin_login_client_ip(request: Request) -> str:
+    candidates: list[str | None] = []
+    if is_trusted_internal_proxy(request):
+        candidates.extend(
+            (
+                request.headers.get("CF-Connecting-IP"),
+                (request.headers.get("X-Forwarded-For") or "").split(",", 1)[0],
+                request.headers.get("X-Real-IP"),
+            )
+        )
+    candidates.append(request.client.host if request.client else None)
+    for value in candidates:
+        try:
+            return str(ipaddress.ip_address((value or "").strip()))
+        except ValueError:
+            continue
+    return "unknown"
+
+
+async def _enforce_admin_login_rate_limit(request: Request) -> None:
+    client_ip = _admin_login_client_ip(request)
+    if await _admin_login_rate_limiter.allow(
+        f"admin-login:{client_ip}",
+        limit=settings.ADMIN_LOGIN_RATE_LIMIT_PER_MINUTE,
+        window_seconds=60,
+    ):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        detail="Demasiados intentos. Intenta de nuevo en un minuto.",
+        headers={"Retry-After": "60"},
+    )
+
+
 @router.post("/login", response_model=AdminSessionResponse)
 async def login(
     payload: AdminLoginRequest,
@@ -72,6 +111,7 @@ async def login(
     response: Response,
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> AdminSessionResponse:
+    await _enforce_admin_login_rate_limit(request)
     user = (
         await session.execute(
             select(AdminUser).where(
@@ -80,7 +120,15 @@ async def login(
             )
         )
     ).scalar_one_or_none()
-    if not user or not verify_password(payload.password, user.password_hash):
+    password_is_valid = bool(
+        user
+        and await asyncio.to_thread(
+            verify_password,
+            payload.password,
+            user.password_hash,
+        )
+    )
+    if not password_is_valid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales invalidas")
 
     raw_token, token_digest = create_session_token()

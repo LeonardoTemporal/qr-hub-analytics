@@ -51,12 +51,19 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       FRONTEND_URL: ${FRONTEND_URL}
-      GEOIP_API_URL: ${GEOIP_API_URL:-http://ip-api.com/json}
+      GEOIP_API_URL: ${GEOIP_API_URL:-https://ipwho.is}
       GEOIP_TIMEOUT_SECONDS: ${GEOIP_TIMEOUT_SECONDS:-2.5}
+      QR_RATE_LIMIT_PER_MINUTE: ${QR_RATE_LIMIT_PER_MINUTE:-120}
+      BROWSER_LOCATION_RATE_LIMIT_PER_MINUTE: ${BROWSER_LOCATION_RATE_LIMIT_PER_MINUTE:-4}
+      TRACKING_EVENT_RATE_LIMIT_PER_MINUTE: ${TRACKING_EVENT_RATE_LIMIT_PER_MINUTE:-20}
+      ADMIN_LOGIN_RATE_LIMIT_PER_MINUTE: ${ADMIN_LOGIN_RATE_LIMIT_PER_MINUTE:-5}
+      QR_COOKIE_SECURE: ${QR_COOKIE_SECURE:-true}
+      TRUST_PROXY_HEADERS: ${TRUST_PROXY_HEADERS:-true}
+      INTERNAL_PROXY_SECRET: ${INTERNAL_PROXY_SECRET:?INTERNAL_PROXY_SECRET must be configured}
       TRACKING_ANALYTICS_CAMPAIGNS: ${TRACKING_ANALYTICS_CAMPAIGNS:-qr_general}
       TRACKING_WHATSAPP_URL: ${TRACKING_WHATSAPP_URL:-https://wa.me/5215637940104?text=Hola%207Fitment%2C%20quiero%20cotizar%20un%20proyecto%20para%20mi%20auto}
       TRACKING_INSTAGRAM_URL: ${TRACKING_INSTAGRAM_URL:-https://www.instagram.com/7fitment/}
-      PORTAL_TOKEN_SECRET: ${PORTAL_TOKEN_SECRET:-${POSTGRES_PASSWORD}}
+      PORTAL_TOKEN_SECRET: ${PORTAL_TOKEN_SECRET:?PORTAL_TOKEN_SECRET must be configured}
       PORTAL_TOKEN_TTL_SECONDS: ${PORTAL_TOKEN_TTL_SECONDS:-1800}
       MEDIA_TOKEN_TTL_SECONDS: ${MEDIA_TOKEN_TTL_SECONDS:-1800}
       MEDIA_ROOT: /srv/7fitment-media
@@ -78,12 +85,12 @@ services:
     labels:
       - traefik.docker.network=dokploy-network
       - traefik.enable=true
-      - "traefik.http.routers.qrhub-backend.rule=(Host(`7fitment.com`) || Host(`admin.7fitment.com`) || Host(`api.7fitment.com`)) && (PathPrefix(`/api`) || PathPrefix(`/t`) || PathPrefix(`/r`) || PathPrefix(`/qr`))"
+      - "traefik.http.routers.qrhub-backend.rule=Host(`api.7fitment.com`) && PathPrefix(`/api`)"
       - traefik.http.routers.qrhub-backend.entrypoints=web
       - traefik.http.routers.qrhub-backend.priority=100
       - traefik.http.routers.qrhub-backend.service=qrhub-backend
       - traefik.http.services.qrhub-backend.loadbalancer.server.port=8000
-      - "traefik.http.routers.qrhub-api.rule=Host(`api.7fitment.com`)"
+      - "traefik.http.routers.qrhub-api.rule=Host(`api.7fitment.com`) && PathPrefix(`/api`)"
       - traefik.http.routers.qrhub-api.entrypoints=web
       - traefik.http.routers.qrhub-api.priority=110
       - traefik.http.routers.qrhub-api.service=qrhub-backend
@@ -140,13 +147,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_API_URL: ${VITE_API_URL:-}
         VITE_DEFAULT_CAMPAIGN_ID: ${VITE_DEFAULT_CAMPAIGN_ID:-qr_general}
         VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-https://7fitment.com}
     container_name: qrhub_frontend
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      INTERNAL_PROXY_SECRET: ${INTERNAL_PROXY_SECRET:?INTERNAL_PROXY_SECRET must be configured}
+      NGINX_ENVSUBST_FILTER: INTERNAL_PROXY_SECRET
     volumes:
       - media_data:/srv/media:ro
    # ports:

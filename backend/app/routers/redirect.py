@@ -11,16 +11,18 @@ Flujo:
 
 from __future__ import annotations
 
-import asyncio
+import hashlib
+import ipaddress
+import json
 import logging
 import secrets
+from datetime import datetime, timezone
 from typing import Any
-from urllib.parse import urlencode
 
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import or_, select, update
 
 from app.config import settings
 from app.database import AsyncSessionLocal
@@ -28,6 +30,8 @@ from app.domains.tracking.service import attribution_expires_at
 from app.models import Scan, ScanSession, VehicleQRCode
 from app.services.geohash_service import compute_scan_geohashes
 from app.services.geo_service import IPApiGeoService
+from app.services.rate_limit_service import SlidingWindowRateLimiter
+from app.services.proxy_service import is_trusted_internal_proxy
 from app.services.ua_service import UserAgentService
 
 logger = logging.getLogger(__name__)
@@ -42,10 +46,11 @@ _geo_service = IPApiGeoService(
     timeout_seconds=settings.GEOIP_TIMEOUT_SECONDS,
 )
 _ua_service = UserAgentService()
+_redirect_rate_limiter = SlidingWindowRateLimiter()
+_browser_location_rate_limiter = SlidingWindowRateLimiter()
 
 
 class BrowserLocationPayload(BaseModel):
-    scan_token: str = Field(min_length=16, max_length=120)
     country: str | None = Field(default=None, max_length=100)
     state: str | None = Field(default=None, max_length=100)
     city: str | None = Field(default=None, max_length=100)
@@ -57,6 +62,24 @@ class BrowserLocationPayload(BaseModel):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+def _normalise_client_ip(value: str | None) -> str | None:
+    candidate = (value or "").strip()
+    if not candidate:
+        return None
+    if candidate.startswith("[") and "]" in candidate:
+        candidate = candidate[1 : candidate.index("]")]
+    elif candidate.count(":") == 1 and "." in candidate:
+        candidate = candidate.rsplit(":", 1)[0]
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError:
+        return None
+
+
+def _is_trusted_proxy_peer(request: Request) -> bool:
+    return is_trusted_internal_proxy(request)
+
+
 def _get_client_ip(request: Request) -> str:
     """
     Extrae la IP real del cliente, respetando cabeceras de reverse-proxy
@@ -64,20 +87,45 @@ def _get_client_ip(request: Request) -> str:
     Nota de seguridad: solo confiar en X-Forwarded-For si el proxy es de confianza
     y está configurado correctamente (ver trusted_hosts en producción).
     """
-    cf_connecting_ip = request.headers.get("CF-Connecting-IP")
-    if cf_connecting_ip:
-        return cf_connecting_ip.strip()
+    candidates: list[str | None] = []
+    if _is_trusted_proxy_peer(request):
+        candidates.extend(
+            (
+                request.headers.get("CF-Connecting-IP"),
+                (request.headers.get("X-Forwarded-For") or "").split(",")[0],
+                request.headers.get("X-Real-IP"),
+            )
+        )
+    candidates.append(request.client.host if request.client else None)
+    for candidate in candidates:
+        normalised = _normalise_client_ip(candidate)
+        if normalised:
+            return normalised
+    return "unknown"
 
-    x_forwarded_for = request.headers.get("X-Forwarded-For")
-    if x_forwarded_for:
-        # La primera IP de la lista es la del cliente original
-        return x_forwarded_for.split(",")[0].strip()
 
-    x_real_ip = request.headers.get("X-Real-IP")
-    if x_real_ip:
-        return x_real_ip.strip()
+def _request_uses_https(request: Request) -> bool:
+    """Detecta HTTPS externo sin depender del esquema HTTP interno del proxy."""
+    if settings.QR_COOKIE_SECURE or request.url.scheme.lower() == "https":
+        return True
 
-    return request.client.host if request.client else "unknown"
+    if not _is_trusted_proxy_peer(request):
+        return False
+
+    cf_visitor = request.headers.get("CF-Visitor")
+    if cf_visitor:
+        try:
+            visitor_data = json.loads(cf_visitor)
+        except (TypeError, ValueError):
+            visitor_data = {}
+        if (
+            isinstance(visitor_data, dict)
+            and str(visitor_data.get("scheme", "")).lower() == "https"
+        ):
+            return True
+
+    forwarded_proto = request.headers.get("X-Forwarded-Proto", "")
+    return forwarded_proto.split(",")[0].strip().lower() == "https"
 
 
 def _build_redirect_target(
@@ -95,7 +143,7 @@ def _build_redirect_target(
     frontend_base = frontend_url.rstrip("/")
     target = frontend_base if frontend_base.endswith("/enlaces") else f"{frontend_base}/enlaces"
     if scan_token:
-        return f"{target}?{urlencode({'scan': scan_token})}"
+        return f"{target}?qr=1"
     return target
 
 
@@ -104,44 +152,30 @@ def _should_record_analytics(campaign_id: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Background Task – procesamiento asíncrono post-respuesta
+# Persistencia minima antes del redirect; enriquecimiento GeoIP post-respuesta.
 # ---------------------------------------------------------------------------
 async def _record_scan(
     campaign_id: str,
-    ip_address: str,
     user_agent_string: str,
     scan_token: str | None = None,
     vehicle_qr_code_id: int | None = None,
     landing_path: str = "/enlaces",
-) -> None:
+) -> int | None:
     """
-    Procesa analíticas y persiste el registro en PostgreSQL.
+    Persiste la atribucion y el dispositivo antes de responder.
 
-    Abre su PROPIA sesión de base de datos (no reutiliza la del request,
-    que ya fue cerrada al enviar la respuesta 302).
-    Captura cualquier excepción para garantizar que ningún error interno
-    afecte la experiencia del usuario final.
+    Es una transaccion local corta, sin red externa. Si PostgreSQL no esta
+    disponible, el redirect continua sin cookie ni marcador de atribucion.
     """
     try:
-        geo = await _geo_service.lookup(ip_address)
         device = _ua_service.parse(user_agent_string)
-        geo_hash_5, geo_hash_7 = compute_scan_geohashes(
-            geo.latitude,
-            geo.longitude,
-        )
-
         scan = Scan(
             campaign_id=campaign_id,
             scan_token=scan_token,
-            country=geo.country,
-            state=geo.state,
-            city=geo.city,
+            country="Unknown",
+            state="Unknown",
+            city="Unknown",
             geo_source="ip",
-            latitude=geo.latitude,
-            longitude=geo.longitude,
-            accuracy_meters=geo.accuracy_meters,
-            geo_hash_5=geo_hash_5,
-            geo_hash_7=geo_hash_7,
             device_type=device.device_type,
             os=device.os,
             browser=device.browser,
@@ -162,14 +196,8 @@ async def _record_scan(
                 )
             await session.commit()
 
-        logger.debug(
-            "Scan recorded: campaign=%r country=%r state=%r city=%r device=%r",
-            campaign_id,
-            geo.country,
-            geo.state,
-            geo.city,
-            device.device_type,
-        )
+        logger.debug("Scan recorded: campaign=%r", campaign_id)
+        return scan.id
     except Exception as exc:  # noqa: BLE001
         logger.error(
             "Silent failure recording scan for campaign=%r: %s",
@@ -177,6 +205,39 @@ async def _record_scan(
             exc,
             exc_info=True,
         )
+        return None
+
+
+async def _enrich_scan_geo(scan_id: int, ip_address: str) -> None:
+    """Enriquece GeoIP sin sobrescribir una ubicacion precisa del navegador."""
+    try:
+        geo = await _geo_service.lookup(ip_address)
+        geo_hash_5, geo_hash_7 = compute_scan_geohashes(
+            geo.latitude,
+            geo.longitude,
+        )
+        async with AsyncSessionLocal() as session:
+            await session.execute(
+                update(Scan)
+                .where(
+                    Scan.id == scan_id,
+                    or_(Scan.geo_source.is_(None), Scan.geo_source != "browser"),
+                )
+                .values(
+                    country=geo.country,
+                    state=geo.state,
+                    city=geo.city,
+                    geo_source="ip",
+                    latitude=geo.latitude,
+                    longitude=geo.longitude,
+                    accuracy_meters=geo.accuracy_meters,
+                    geo_hash_5=geo_hash_5,
+                    geo_hash_7=geo_hash_7,
+                )
+            )
+            await session.commit()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("GeoIP enrichment failed for scan=%s: %s", scan_id, exc)
 
 
 async def _resolve_redirect_target(
@@ -187,16 +248,25 @@ async def _resolve_redirect_target(
         target = _build_redirect_target(settings.FRONTEND_URL, campaign_id, scan_token)
         return target, None, "/enlaces"
 
-    async with AsyncSessionLocal() as session:
-        qr_code = (
-            await session.execute(
-                select(VehicleQRCode).where(
-                    VehicleQRCode.is_active.is_(True),
-                    (VehicleQRCode.qr_id == campaign_id)
-                    | (VehicleQRCode.public_slug == campaign_id),
+    try:
+        async with AsyncSessionLocal() as session:
+            qr_code = (
+                await session.execute(
+                    select(VehicleQRCode).where(
+                        VehicleQRCode.is_active.is_(True),
+                        (VehicleQRCode.qr_id == campaign_id)
+                        | (VehicleQRCode.public_slug == campaign_id),
+                    )
                 )
-            )
-        ).scalar_one_or_none()
+            ).scalar_one_or_none()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "QR destination lookup failed; using links fallback: campaign=%r error=%s",
+            campaign_id,
+            exc,
+        )
+        return _build_redirect_target(settings.FRONTEND_URL), None, "/enlaces"
+
     if not qr_code:
         target = _build_redirect_target(settings.FRONTEND_URL, campaign_id, scan_token)
         return target, None, "/enlaces"
@@ -205,7 +275,7 @@ async def _resolve_redirect_target(
     separator = "&" if "?" in path else "?"
     target = f"{settings.FRONTEND_URL.rstrip('/')}{path}"
     if scan_token:
-        target = f"{target}{separator}scan={scan_token}"
+        target = f"{target}{separator}qr=1"
     return target, qr_code.id, path
 
 
@@ -219,40 +289,55 @@ def _clean_location_value(value: str | None) -> str | None:
 def _clean_accuracy(value: int | None) -> int | None:
     if value is None or value <= 0:
         return None
-    return min(value, 100_000)
+    return max(100, min(value, 100_000))
 
 
-async def _apply_browser_location(payload: BrowserLocationPayload) -> bool:
-    for _ in range(10):
-        async with AsyncSessionLocal() as session:
-            scan = (
-                await session.execute(
-                    select(Scan).where(Scan.scan_token == payload.scan_token)
+def _minimise_coordinate(value: float | None) -> float | None:
+    return round(value, 3) if value is not None else None
+
+
+async def _apply_browser_location(
+    payload: BrowserLocationPayload,
+    attribution_token: str,
+) -> bool:
+    async with AsyncSessionLocal() as session:
+        scan = (
+            await session.execute(
+                select(Scan)
+                .join(ScanSession, ScanSession.scan_id == Scan.id)
+                .where(
+                    ScanSession.attribution_token == attribution_token,
+                    ScanSession.expires_at > datetime.now(timezone.utc),
                 )
-            ).scalar_one_or_none()
-            if scan:
-                scan.country = _clean_location_value(payload.country) or scan.country
-                scan.state = _clean_location_value(payload.state) or scan.state
-                scan.city = _clean_location_value(payload.city) or scan.city
-                scan.latitude = payload.latitude if payload.latitude is not None else scan.latitude
-                scan.longitude = payload.longitude if payload.longitude is not None else scan.longitude
-                scan.accuracy_meters = _clean_accuracy(payload.accuracy_meters) or scan.accuracy_meters
-                scan.geo_hash_5, scan.geo_hash_7 = compute_scan_geohashes(
-                    scan.latitude,
-                    scan.longitude,
-                )
-                scan.geo_source = "browser"
-                await session.commit()
-                logger.info(
-                    "Browser location applied: campaign=%r country=%r state=%r city=%r",
-                    scan.campaign_id,
-                    scan.country,
-                    scan.state,
-                    scan.city,
-                )
-                return True
-        await asyncio.sleep(0.2)
-    return False
+            )
+        ).scalar_one_or_none()
+        if not scan:
+            return False
+
+        scan.country = _clean_location_value(payload.country) or scan.country
+        scan.state = _clean_location_value(payload.state) or scan.state
+        scan.city = _clean_location_value(payload.city) or scan.city
+        scan.latitude = (
+            _minimise_coordinate(payload.latitude)
+            if payload.latitude is not None
+            else scan.latitude
+        )
+        scan.longitude = (
+            _minimise_coordinate(payload.longitude)
+            if payload.longitude is not None
+            else scan.longitude
+        )
+        scan.accuracy_meters = (
+            _clean_accuracy(payload.accuracy_meters) or scan.accuracy_meters
+        )
+        scan.geo_hash_5, scan.geo_hash_7 = compute_scan_geohashes(
+            scan.latitude,
+            scan.longitude,
+        )
+        scan.geo_source = "browser"
+        await session.commit()
+        logger.info("Browser location applied: campaign=%r", scan.campaign_id)
+        return True
 
 
 # ---------------------------------------------------------------------------
@@ -288,47 +373,71 @@ async def redirect_campaign(
     Punto de entrada del QR físico.
 
     - Devuelve **302 redirect** de forma inmediata (latencia cero para el usuario).
-    - Encola en segundo plano el registro de analíticas sin bloquear la respuesta.
+    - Persiste una atribucion local corta y enriquece GeoIP en segundo plano.
     - Redirige al destino configurado, sin pop-ups ni permisos de navegador.
     """
     ip_address = _get_client_ip(request)
+    tracking_allowed = await _redirect_rate_limiter.allow(
+        f"redirect:{ip_address}",
+        limit=settings.QR_RATE_LIMIT_PER_MINUTE,
+        window_seconds=60,
+    )
+
     user_agent_string = request.headers.get("User-Agent", "")
-    initial_tracking = _should_record_analytics(campaign_id)
+    initial_tracking = tracking_allowed and _should_record_analytics(campaign_id)
     provisional_token = secrets.token_urlsafe(32) if initial_tracking else None
     target_url, vehicle_qr_code_id, landing_path = await _resolve_redirect_target(
         campaign_id, provisional_token
     )
-    should_record = initial_tracking or vehicle_qr_code_id is not None
+    should_record = tracking_allowed and (
+        _should_record_analytics(campaign_id) or vehicle_qr_code_id is not None
+    )
     scan_token = provisional_token or (secrets.token_urlsafe(32) if should_record else None)
     if scan_token and not provisional_token:
         target_url, vehicle_qr_code_id, landing_path = await _resolve_redirect_target(
             campaign_id, scan_token
         )
-    logger.info(
-        "Tracking request received: campaign=%r detected_ip=%r",
-        campaign_id,
-        ip_address,
-    )
+    logger.info("Tracking request received: campaign=%r", campaign_id)
+    if not tracking_allowed:
+        logger.warning(
+            "Tracking admission throttled; redirect preserved: campaign=%r",
+            campaign_id,
+        )
 
+    persisted_scan_id: int | None = None
     if should_record:
-        background_tasks.add_task(
-            _record_scan,
+        persisted_scan_id = await _record_scan(
             campaign_id=campaign_id,
-            ip_address=ip_address,
             user_agent_string=user_agent_string,
             scan_token=scan_token,
             vehicle_qr_code_id=vehicle_qr_code_id,
             landing_path=landing_path,
         )
+        if persisted_scan_id is not None:
+            background_tasks.add_task(
+                _enrich_scan_geo,
+                scan_id=persisted_scan_id,
+                ip_address=ip_address,
+            )
+        else:
+            scan_token = None
+            target_url, vehicle_qr_code_id, landing_path = await _resolve_redirect_target(
+                campaign_id,
+                None,
+            )
 
     response = RedirectResponse(url=target_url, status_code=302)
+    response.headers["Cache-Control"] = "no-store, private, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
     if scan_token:
         response.set_cookie(
             "qr_attribution",
             scan_token,
             max_age=30 * 24 * 60 * 60,
             httponly=True,
-            secure=request.url.scheme == "https",
+            secure=_request_uses_https(request),
             samesite="lax",
             path="/",
             domain=settings.COOKIE_DOMAIN,
@@ -343,6 +452,26 @@ async def redirect_campaign(
 )
 async def update_browser_location(
     payload: BrowserLocationPayload,
+    request: Request,
 ) -> dict[str, Any]:
-    updated = await _apply_browser_location(payload)
+    attribution_token = request.cookies.get("qr_attribution")
+    if not attribution_token:
+        raise HTTPException(status_code=401, detail="QR attribution required")
+    if not is_trusted_internal_proxy(request):
+        raise HTTPException(status_code=403, detail="Trusted proxy required")
+
+    ip_address = _get_client_ip(request)
+    token_digest = hashlib.sha256(attribution_token.encode("utf-8")).hexdigest()[:16]
+    if not await _browser_location_rate_limiter.allow(
+        f"browser-location:{ip_address}:{token_digest}",
+        limit=settings.BROWSER_LOCATION_RATE_LIMIT_PER_MINUTE,
+        window_seconds=60,
+    ):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many location requests",
+            headers={"Retry-After": "60"},
+        )
+
+    updated = await _apply_browser_location(payload, attribution_token)
     return {"success": True, "updated": updated}

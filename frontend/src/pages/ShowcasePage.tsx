@@ -32,7 +32,6 @@ export default function ShowcasePage({ slug }: { slug: string }) {
     void trackQrEvent({
       event_type: "destination_view",
       path: `/auto/${slug}`,
-      idempotency_key: `showcase-view-${slug}-${crypto.randomUUID()}`,
     });
   }, [slug]);
 

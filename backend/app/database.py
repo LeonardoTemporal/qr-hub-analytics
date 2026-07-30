@@ -18,6 +18,8 @@ engine = create_async_engine(
     pool_pre_ping=True,  # keeps connections healthy behind a proxy / Dokploy
     pool_size=10,
     max_overflow=20,
+    pool_timeout=2,
+    connect_args={"command_timeout": 2},
 )
 
 AsyncSessionLocal = async_sessionmaker(

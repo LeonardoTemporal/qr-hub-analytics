@@ -16,7 +16,7 @@ export interface paths {
          * @description Punto de entrada del QR físico.
          *
          *     - Devuelve **302 redirect** de forma inmediata (latencia cero para el usuario).
-         *     - Encola en segundo plano el registro de analíticas sin bloquear la respuesta.
+         *     - Persiste una atribucion local corta y enriquece GeoIP en segundo plano.
          *     - Redirige al destino configurado, sin pop-ups ni permisos de navegador.
          */
         get: operations["redirect_campaign_r__campaign_id__get"];
@@ -40,7 +40,7 @@ export interface paths {
          * @description Punto de entrada del QR físico.
          *
          *     - Devuelve **302 redirect** de forma inmediata (latencia cero para el usuario).
-         *     - Encola en segundo plano el registro de analíticas sin bloquear la respuesta.
+         *     - Persiste una atribucion local corta y enriquece GeoIP en segundo plano.
          *     - Redirige al destino configurado, sin pop-ups ni permisos de navegador.
          */
         get: operations["redirect_campaign_t__campaign_id__get"];
@@ -64,7 +64,7 @@ export interface paths {
          * @description Punto de entrada del QR físico.
          *
          *     - Devuelve **302 redirect** de forma inmediata (latencia cero para el usuario).
-         *     - Encola en segundo plano el registro de analíticas sin bloquear la respuesta.
+         *     - Persiste una atribucion local corta y enriquece GeoIP en segundo plano.
          *     - Redirige al destino configurado, sin pop-ups ni permisos de navegador.
          */
         get: operations["redirect_campaign_qr__campaign_id__get"];
@@ -1006,8 +1006,6 @@ export interface components {
         };
         /** BrowserLocationPayload */
         BrowserLocationPayload: {
-            /** Scan Token */
-            scan_token: string;
             /** Country */
             country?: string | null;
             /** State */
@@ -1552,14 +1550,20 @@ export interface components {
         };
         /** TrackingEventRequest */
         TrackingEventRequest: {
-            /** Event Type */
-            event_type: string;
+            /**
+             * Event Type
+             * @enum {string}
+             */
+            event_type: "destination_view" | "cta_click" | "link_click" | "lead_submit" | "portal_open";
             /** Path */
             path?: string | null;
             /** Element Id */
             element_id?: string | null;
-            /** Idempotency Key */
-            idempotency_key?: string | null;
+            /**
+             * Idempotency Key
+             * Format: uuid
+             */
+            idempotency_key: string;
             /** Metadata */
             metadata?: {
                 [key: string]: unknown;

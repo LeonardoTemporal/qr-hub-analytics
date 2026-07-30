@@ -54,8 +54,8 @@ def verify_pin(pin: str, stored_hash: str) -> bool:
 
 
 def _portal_secret() -> bytes:
-    secret = settings.PORTAL_TOKEN_SECRET or settings.ADMIN_PASSWORD
-    if not secret.strip():
+    secret = settings.PORTAL_TOKEN_SECRET
+    if not secret or not secret.strip():
         raise RuntimeError("PORTAL_TOKEN_SECRET must be configured")
     return secret.encode("utf-8")
 

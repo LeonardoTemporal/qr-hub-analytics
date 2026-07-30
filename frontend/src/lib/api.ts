@@ -102,7 +102,6 @@ export interface CampaignOption {
 }
 
 export interface BrowserLocationPayload {
-  scan_token: string;
   country?: string;
   state?: string;
   city?: string;
@@ -238,6 +237,7 @@ export const PUBLIC_SITE_URL =
 export const DEFAULT_CAMPAIGN_ID =
   import.meta.env.VITE_DEFAULT_CAMPAIGN_ID || "qr_general";
 export const QR_GENERAL_TRACKING_URL = `${PUBLIC_SITE_URL}/t/qr_general`;
+export const QR_GENERAL_ASSET_URL = "/assets/qr/7fitment-qr-general.svg";
 export const CAMPAIGN_OPTIONS: CampaignOption[] = [
   {
     label: "QR general",
@@ -280,8 +280,8 @@ export async function fetchAnalytics(
 
 export async function submitBrowserLocation(
   payload: BrowserLocationPayload,
-): Promise<void> {
-  const response = await fetch(apiUrl("/api/analytics/browser-location"), {
+): Promise<boolean> {
+  const response = await fetch("/api/analytics/browser-location", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -292,6 +292,8 @@ export async function submitBrowserLocation(
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
+  const result = (await response.json()) as { updated?: boolean };
+  return result.updated === true;
 }
 
 async function publicRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -299,18 +301,30 @@ async function publicRequest<T>(path: string, init: RequestInit = {}): Promise<T
 }
 
 export async function trackQrEvent(input: {
-  event_type: string;
+  event_type:
+    | "destination_view"
+    | "cta_click"
+    | "link_click"
+    | "lead_submit"
+    | "portal_open";
   path?: string;
   element_id?: string;
   idempotency_key?: string;
   metadata?: Record<string, unknown>;
 }): Promise<boolean> {
+  const payload = {
+    ...input,
+    idempotency_key: input.idempotency_key ?? crypto.randomUUID(),
+  };
   try {
-    await publicRequest("/api/tracking/events", {
+    const response = await fetch("/api/tracking/events", {
       method: "POST",
-      body: JSON.stringify(input),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
       keepalive: true,
+      credentials: "include",
     });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return true;
   } catch {
     return false;
@@ -370,4 +384,4 @@ export async function createGarageWarrantyClaim(
     body: JSON.stringify(input),
   });
 }
-import { apiRequest, apiUrl } from "../app/api/client";
+import { apiRequest } from "../app/api/client";
