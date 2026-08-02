@@ -31,9 +31,10 @@ jobs:
         working-directory: backend
     env:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/qrhub
+      FRONTEND_URL: https://7fitment.com
       SECRET_KEY: ci-only-secret-key-with-at-least-32-characters
       ADMIN_PASSWORD: ci-only-admin-password
-      GARAGE_TOKEN_SECRET: ci-only-garage-secret-with-32-characters
+      PORTAL_TOKEN_SECRET: ci-only-portal-secret-with-32-characters
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
