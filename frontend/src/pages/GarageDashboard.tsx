@@ -306,8 +306,10 @@ export default function GarageDashboard() {
     };
   }, []);
 
+  const animationVehicleId = data?.vehicle.id;
+
   useEffect(() => {
-    if (!rootRef.current || !data) return;
+    if (!rootRef.current || !animationVehicleId) return;
     if (prefersReducedMotion()) {
       gsap.set(".garage-card, .garage-title", { opacity: 1, y: 0 });
       gsap.utils.toArray<HTMLElement>(".warranty-bar").forEach((bar) => {
@@ -362,7 +364,7 @@ export default function GarageDashboard() {
       if (!imgs || imgs.length === 0) ScrollTrigger.refresh();
     }, rootRef);
     return () => ctx.revert();
-  }, [data?.vehicle.id]);
+  }, [animationVehicleId]);
 
   const vehicleName = useMemo(
     () => (data ? `${data.vehicle.brand} ${data.vehicle.model}` : "7F Garage"),

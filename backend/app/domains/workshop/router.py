@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import secrets
-from datetime import UTC, timedelta, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,12 +18,12 @@ from app.domains.workshop.schemas import (
     QRCodeCreate,
     QRCodeRead,
     QRCodeUpdate,
-    ServiceRecordCreate,
-    ServiceRecordRead,
-    ServiceRecordUpdate,
     ServiceCatalogCreate,
     ServiceCatalogRead,
     ServiceCatalogUpdate,
+    ServiceRecordCreate,
+    ServiceRecordRead,
+    ServiceRecordUpdate,
     VehicleCreate,
     VehicleRead,
     VehicleUpdate,
@@ -53,10 +53,10 @@ from app.models import (
     Conversion,
     EventOutbox,
     MediaAsset,
+    ScanSession,
+    ServiceCatalog,
     ServiceMedia,
     ServiceRecord,
-    ServiceCatalog,
-    ScanSession,
     ShowcaseProfile,
     Vehicle,
     VehicleQRCode,

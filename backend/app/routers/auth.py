@@ -10,7 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.domains.admin.dependencies import require_admin_session
-from app.domains.admin.router import AdminLoginRequest, login as admin_login
+from app.domains.admin.router import AdminLoginRequest
+from app.domains.admin.router import login as admin_login
 from app.models import AdminUser
 
 router = APIRouter()

@@ -20,8 +20,8 @@ from app.domains.media import router as media_router
 from app.domains.public import router as public_router
 from app.domains.tracking import router as tracking_router
 from app.domains.workshop import router as workshop_router
-from app.routers import analytics, auth, garage, redirect
 from app.request_limits import RequestBodyLimitMiddleware
+from app.routers import analytics, auth, garage, redirect
 
 logging.basicConfig(
     level=logging.INFO,

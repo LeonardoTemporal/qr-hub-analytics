@@ -22,7 +22,6 @@ from app.models import (
 )
 from app.security import hash_pin
 
-
 UAT_CLIENT_EMAIL = "release-uat@7fitment.invalid"
 UAT_VEHICLE_VIN = "UAT7F911GT3RS2026"
 UAT_QR_ID = "uat-vehicle-qr"

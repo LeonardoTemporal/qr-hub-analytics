@@ -10,8 +10,8 @@ from starlette.requests import Request
 
 
 def test_evolution_tables_are_registered_in_metadata() -> None:
-    from app.database import Base
     from app import models  # noqa: F401
+    from app.database import Base
 
     expected = {
         "admin_users",
@@ -196,8 +196,8 @@ def test_redirect_response_sets_first_party_attribution_cookie(monkeypatch) -> N
 
 
 def test_service_media_can_reference_managed_asset() -> None:
-    from app.database import Base
     from app import models  # noqa: F401
+    from app.database import Base
 
     assert "media_asset_id" in Base.metadata.tables["service_media"].columns
 
@@ -247,8 +247,8 @@ def test_work_order_items_and_warranty_claim_routes_are_registered() -> None:
 
 
 def test_warranty_claim_contract_links_policy_vehicle_and_evidence() -> None:
-    from app.database import Base
     from app import models  # noqa: F401
+    from app.database import Base
 
     claims = Base.metadata.tables["warranty_claims"].columns
     evidence = Base.metadata.tables["warranty_claim_media"].columns
@@ -443,8 +443,8 @@ def test_successful_pin_resets_throttle_state() -> None:
 
 
 def test_warranty_contract_contains_p0_care_fields() -> None:
-    from app.database import Base
     from app import models  # noqa: F401
+    from app.database import Base
 
     columns = Base.metadata.tables["warranty_policies"].columns
     expected = {
@@ -484,8 +484,8 @@ def test_warranty_rejects_less_than_profeco_minimum() -> None:
 
 
 def test_social_proof_requires_consent_fields() -> None:
-    from app.database import Base
     from app import models  # noqa: F401
+    from app.database import Base
 
     columns = Base.metadata.tables["showcase_social_proof"].columns
 

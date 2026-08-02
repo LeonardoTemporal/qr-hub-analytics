@@ -28,10 +28,10 @@ from app.config import settings
 from app.database import AsyncSessionLocal
 from app.domains.tracking.service import attribution_expires_at
 from app.models import Scan, ScanSession, VehicleQRCode
-from app.services.geohash_service import compute_scan_geohashes
 from app.services.geo_service import IPApiGeoService
-from app.services.rate_limit_service import SlidingWindowRateLimiter
+from app.services.geohash_service import compute_scan_geohashes
 from app.services.proxy_service import is_trusted_internal_proxy
+from app.services.rate_limit_service import SlidingWindowRateLimiter
 from app.services.ua_service import UserAgentService
 
 logger = logging.getLogger(__name__)

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import secrets
 from datetime import UTC, date, datetime
 from pathlib import Path
-import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -21,7 +21,6 @@ from app.domains.garage.security import (
     register_pin_failure,
 )
 from app.models import (
-    Client,
     EventOutbox,
     MediaAsset,
     ServiceMedia,
@@ -30,9 +29,9 @@ from app.models import (
     ShowcaseSocialProof,
     Vehicle,
     VehicleQRCode,
-    WarrantyPolicy,
     WarrantyClaim,
     WarrantyClaimMedia,
+    WarrantyPolicy,
 )
 from app.security import (
     create_media_token,
