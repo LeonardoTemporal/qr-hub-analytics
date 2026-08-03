@@ -171,7 +171,7 @@ export default function LocationSoftPrompt() {
       return;
     }
 
-    const timer = window.setTimeout(() => setVisible(true), 900);
+    const timer = window.setTimeout(() => setVisible(true), 1400);
     return () => window.clearTimeout(timer);
   }, [isQrVisit, submitPreciseLocation]);
 
@@ -183,61 +183,70 @@ export default function LocationSoftPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-4 pb-5 backdrop-blur-[2px] sm:items-center sm:pb-0">
-      <section className="soft-prompt-in relative w-full max-w-[460px] overflow-hidden border border-white/10 bg-[#080808]/95 p-5 text-[#f2f2f2] shadow-[0_24px_80px_rgba(0,0,0,0.55)] sm:p-6">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:justify-end sm:p-5">
+      <aside
+        aria-labelledby="location-prompt-title"
+        className="soft-prompt-in pointer-events-auto relative w-full max-w-[430px] overflow-hidden border border-white/[0.12] bg-[#080808] p-4 text-[#f2f2f2] shadow-[0_18px_60px_rgba(0,0,0,0.72)]"
+      >
         <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(255,255,255,0.08),transparent_32%),linear-gradient(135deg,rgba(255,255,255,0.045),transparent_44%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.04),transparent_42%)]"
           aria-hidden="true"
         />
         <button
           type="button"
           onClick={decline}
-          className="focus-ring absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center border border-white/10 bg-black/30 text-[#707070] transition-colors hover:text-[#f2f2f2]"
-          aria-label="Cerrar"
+          className="focus-ring absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center text-[#666] transition-colors hover:text-[#f2f2f2]"
+          aria-label="Cerrar y continuar con ubicación aproximada"
         >
-          <X size={15} strokeWidth={1.5} />
+          <X size={16} strokeWidth={1.5} />
         </button>
 
         <div className="relative z-10">
-          <div className="relative mb-5 flex h-11 w-11 items-center justify-center border border-white/10 bg-[#050505] text-[#d8d8d8]">
-            <MapPin size={18} strokeWidth={1.5} />
-            <span className="absolute -left-px -top-px h-2.5 w-2.5 border-l border-t border-white/40" aria-hidden="true" />
-            <span className="absolute -bottom-px -right-px h-2.5 w-2.5 border-b border-r border-white/40" aria-hidden="true" />
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center border border-white/[0.1] bg-[#050505] text-[#aaa]">
+              <MapPin size={15} strokeWidth={1.5} />
+              <span className="absolute -left-px -top-px h-2 w-2 border-l border-t border-white/40" aria-hidden="true" />
+              <span className="absolute -bottom-px -right-px h-2 w-2 border-b border-r border-white/40" aria-hidden="true" />
+            </div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#929292]">
+              Ubicación opcional
+            </p>
           </div>
-          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.28em] text-[#707070]">
-            Experiencia personalizada
-          </p>
-          <h2 className="max-w-[360px] text-[26px] font-medium leading-[0.98] tracking-[-0.055em]">
-            Servicios cerca de tu zona.
+          <h2
+            id="location-prompt-title"
+            className="mt-3 max-w-[310px] pr-5 text-[17px] font-medium leading-tight tracking-[-0.035em] sm:text-[18px]"
+          >
+            ¿Nos ayudas a ubicar este escaneo?
           </h2>
-          <p className="mt-4 text-[14px] leading-6 text-[#9a9a9a]">
-            Si aceptas, tu navegador compartirá una ubicación aproximada con
-            7Fitment y OpenStreetMap para identificar tu zona y personalizar la
-            disponibilidad en CDMX/EdoMex. La preferencia vence en 30 días.
+          <p className="mt-2 max-w-[380px] text-[12px] leading-[1.6] text-[#a3a3a3]">
+            Compartir tu zona nos ayuda a entender hasta dónde llegan nuestros
+            proyectos y mejorar la atención en tu área. Es opcional y usamos
+            coordenadas reducidas para identificar únicamente una zona aproximada.
+          </p>
+          <p className="mt-1.5 max-w-[380px] font-mono text-[9px] leading-[1.55] tracking-[0.06em] text-[#8f8f8f]">
+            Al permitir, OpenStreetMap traduce la zona y recordamos tu decisión durante 30 días. Nunca registramos tu recorrido.
           </p>
 
-          <div className="mt-6 h-px w-full bg-white/10" aria-hidden="true" />
-
-          <div className="mt-6 grid gap-2 sm:grid-cols-[1fr_1.25fr]">
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={decline}
               disabled={submitting}
-              className="focus-ring min-h-12 border border-white/10 px-4 text-[11px] font-medium uppercase tracking-[0.16em] text-[#9a9a9a] transition-colors hover:border-white/18 hover:text-[#f2f2f2] disabled:opacity-50"
+              className="focus-ring min-h-11 px-4 font-mono text-[9px] uppercase tracking-[0.14em] text-[#777] transition-colors hover:text-[#f2f2f2] disabled:opacity-50"
             >
-              Continuar sin personalizar
+              Ahora no
             </button>
             <button
               type="button"
               onClick={() => void submitPreciseLocation()}
               disabled={submitting}
-              className="focus-ring min-h-12 bg-[#f2f2f2] px-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-black transition-opacity disabled:opacity-60"
+              className="focus-ring min-h-11 border border-white/[0.14] bg-white/[0.035] px-4 font-mono text-[9px] font-medium uppercase tracking-[0.14em] text-[#d5d5d5] transition-colors hover:border-white/30 hover:bg-white/[0.07] disabled:opacity-50"
             >
-              {submitting ? "Ubicando" : "Permitir"}
+              {submitting ? "Consultando zona" : "Compartir mi zona"}
             </button>
           </div>
         </div>
-      </section>
+      </aside>
     </div>
   );
 }

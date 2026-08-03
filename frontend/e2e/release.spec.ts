@@ -40,15 +40,19 @@ test("links hub exposes the contact destinations", async ({ page }) => {
   const response = await page.goto("/enlaces");
 
   expect(response?.ok()).toBe(true);
-  await expect(page.getByRole("heading", { name: "7FITMENT" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Cotizar proyecto/ })).toHaveAttribute(
+    await expect(page.getByRole("img", { name: "7Fitment", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Tu auto/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Cotizar por WhatsApp" })).toHaveAttribute(
     "href",
     /^https:\/\/wa\.me\//,
   );
-  await expect(page.getByRole("link", { name: /Instagram/ })).toHaveAttribute(
+  await expect(
+    page.getByRole("link", { name: "Ver trabajos de 7Fitment en Instagram" }),
+  ).toHaveAttribute(
     "href",
     /^https:\/\/www\.instagram\.com\//,
   );
+  await expect(page.getByTestId("enlaces-work-preview")).toHaveCount(3);
   await expect(page.getByRole("link", { name: /Ubicación/ })).toHaveAttribute(
     "href",
     /^https:\/\/maps\.app\.goo\.gl\//,
