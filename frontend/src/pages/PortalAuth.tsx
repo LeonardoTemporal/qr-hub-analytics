@@ -108,15 +108,15 @@ export default function PortalAuth() {
 
       <form
         onSubmit={handleSubmit}
-        className="relative z-10 w-full max-w-[420px] text-center"
+        className="relative z-10 w-full max-w-[440px] rounded-xl border border-white/[0.08] bg-white/[0.03] px-6 py-10 text-center shadow-[0_40px_90px_-40px_rgba(0,0,0,0.9)] backdrop-blur-md sm:px-10 sm:py-12"
       >
-        <div className="portal-reveal mx-auto mb-8 flex h-16 w-16 items-center justify-center border border-white/10 bg-[#0a0a0a] text-[#d8d8d8]">
+        <div className="portal-reveal mx-auto mb-9 flex h-16 w-16 items-center justify-center rounded-lg border border-white/10 bg-black/40 text-[#d8d8d8]">
           <LockKeyhole size={22} strokeWidth={1.45} />
         </div>
-        <p className="portal-reveal mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-[#707070]">
+        <p className="portal-reveal mb-4 font-mono text-[10px] uppercase tracking-[0.32em] text-[#787878]">
           Access / PIN — 7F Garage
         </p>
-        <h1 className="portal-title mb-10 text-[clamp(2.9rem,11vw,6rem)] font-light leading-none tracking-[-0.07em]">
+        <h1 className="portal-title mb-11 text-[clamp(2.9rem,11vw,6rem)] font-light leading-none tracking-[-0.07em]">
           Portal
         </h1>
 
@@ -128,7 +128,7 @@ export default function PortalAuth() {
             onChange={(event) => setPin(event.target.value.toUpperCase())}
             maxLength={12}
             aria-label="PIN de acceso"
-            className="focus-ring h-16 w-full border border-white/10 bg-black/40 px-5 text-center text-[22px] font-medium uppercase tracking-[0.42em] text-[#f2f2f2] outline-none transition-colors placeholder:text-[#3a3a3a] hover:border-white/18"
+            className="focus-ring h-16 w-full rounded-lg border border-white/10 bg-black/50 px-5 text-center text-[22px] font-medium uppercase tracking-[0.42em] text-[#f2f2f2] outline-none transition-colors duration-300 placeholder:text-[#3a3a3a] hover:border-white/25 focus:border-white/30"
             placeholder="PIN"
           />
           {submitting ? <span className="scan-underline" aria-hidden="true" /> : null}
@@ -141,13 +141,13 @@ export default function PortalAuth() {
         <button
           type="submit"
           disabled={!pin || submitting}
-          className="portal-reveal mt-5 inline-flex h-13 w-full items-center justify-center gap-3 bg-[#f2f2f2] px-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-all duration-300 hover:scale-[0.99] hover:opacity-85 disabled:opacity-45"
+          className="portal-reveal mt-6 inline-flex h-13 w-full items-center justify-center gap-3 rounded-lg bg-[#f2f2f2] px-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-black transition-all duration-300 hover:bg-white disabled:opacity-45"
         >
           {submitting ? "Validando" : "Acceder"}
           {!submitting ? <ArrowRight size={15} /> : null}
         </button>
 
-        <p className="portal-reveal mt-7 text-[11px] leading-5 text-[#707070]">
+        <p className="portal-reveal mt-8 text-[11px] leading-5 text-[#787878]">
           {vehicleId
             ? "Acceso privado vinculado a tu vehiculo."
             : "Ingresa tu PIN para abrir tu expediente privado."}

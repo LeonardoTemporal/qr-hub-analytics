@@ -143,7 +143,7 @@ function KpiCard({
   index: number;
 }) {
   return (
-    <article className="dash-reveal group relative overflow-hidden rounded-[6px] border border-white/[0.07] bg-white/[0.03] p-5 transition-colors duration-500 hover:border-white/[0.14] hover:bg-white/[0.055] sm:p-6">
+    <article className="dash-reveal group relative overflow-hidden rounded-lg border border-white/[0.07] bg-white/[0.03] p-5 backdrop-blur-sm transition-colors duration-500 hover:border-white/[0.16] hover:bg-white/[0.055] sm:p-6">
       <div className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),transparent_48%)]" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
@@ -154,7 +154,7 @@ function KpiCard({
             <AnimatedNumber value={value} />
           </p>
         </div>
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[4px] bg-[#f2f2f2] text-black">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[#f2f2f2] text-black">
           <Icon size={20} strokeWidth={1.5} />
         </div>
       </div>
@@ -180,9 +180,9 @@ function Panel({
   className?: string;
 }) {
   return (
-    <section className={`dash-reveal rounded-[6px] border border-white/[0.07] bg-white/[0.03] p-5 backdrop-blur-xl transition-colors duration-500 hover:border-white/[0.12] hover:bg-white/[0.05] sm:p-6 ${className}`}>
+    <section className={`dash-reveal rounded-lg border border-white/[0.07] bg-white/[0.03] p-5 backdrop-blur-xl transition-colors duration-500 hover:border-white/[0.14] hover:bg-white/[0.05] sm:p-6 ${className}`}>
       <div className="mb-6 flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-[4px] border border-white/[0.07] bg-white/[0.03] text-[#b8b8b8]">
+        <span className="flex h-9 w-9 items-center justify-center rounded-md border border-white/[0.07] bg-white/[0.03] text-[#b8b8b8]">
           <Icon size={17} strokeWidth={1.5} />
         </span>
         <h2 className="text-[15px] font-medium tracking-[-0.04em] text-[#f2f2f2]">
@@ -196,7 +196,7 @@ function Panel({
 
 function EmptyState() {
   return (
-    <div className="flex h-full min-h-[220px] items-center justify-center rounded-[4px] border border-dashed border-white/[0.08] px-6 text-center text-[13px] text-[#707070]">
+    <div className="flex h-full min-h-[220px] items-center justify-center rounded-lg border border-dashed border-white/[0.08] px-6 text-center text-[13px] text-[#707070]">
       Sin datos registrados en PostgreSQL para este rango.
     </div>
   );
@@ -347,14 +347,14 @@ function GeoMapPanel({ clusters }: { clusters: GeoCluster[] }) {
 
   return (
     <Panel title="Mapa de origen" icon={MapPin} className="overflow-hidden">
-      <div className="relative overflow-hidden rounded-[8px] border border-white/[0.08] bg-[#050505]">
-        <div className="pointer-events-none absolute left-4 top-4 z-[500] flex items-center gap-2 rounded-[4px] border border-white/[0.08] bg-[#050505]/80 px-3 py-2 backdrop-blur-xl">
+      <div className="relative overflow-hidden rounded-lg border border-white/[0.08] bg-[#050505]">
+        <div className="pointer-events-none absolute left-4 top-4 z-[500] flex items-center gap-2 rounded-md border border-white/[0.08] bg-[#050505]/80 px-3 py-2 backdrop-blur-xl">
           <span className="h-2 w-2 rounded-full bg-[#f2f2f2]" />
           <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-[#f2f2f2]">
             Tracking QR
           </span>
         </div>
-        <div className="pointer-events-none absolute right-4 top-4 z-[500] rounded-[4px] border border-white/[0.08] bg-[#050505]/80 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070] backdrop-blur-xl">
+        <div className="pointer-events-none absolute right-4 top-4 z-[500] rounded-md border border-white/[0.08] bg-[#050505]/80 px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070] backdrop-blur-xl">
           {clusters.length} clusters
         </div>
         <div ref={mapNodeRef} data-lenis-prevent className="h-[480px] w-full" />
@@ -425,7 +425,7 @@ function ScanTablePanel({
 
       {items.length ? (
         <>
-          <div className="hidden overflow-x-auto rounded-[6px] border border-white/[0.06] md:block">
+          <div className="hidden overflow-x-auto rounded-lg border border-white/[0.06] md:block">
             <table className="w-full min-w-[980px] border-collapse text-left">
               <thead className="bg-white/[0.025]">
                 <tr>
@@ -473,7 +473,7 @@ function ScanTablePanel({
 
           <div className="space-y-3 md:hidden">
             {items.map((scan: ScanDetailItem) => (
-              <article key={scan.id} className="rounded-[6px] border border-white/[0.07] bg-white/[0.025] p-4">
+              <article key={scan.id} className="rounded-lg border border-white/[0.07] bg-white/[0.025] p-4">
                 <div className="mb-3 flex items-start justify-between gap-4">
                   <div>
                     <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#707070]">
@@ -504,7 +504,7 @@ function ScanTablePanel({
           type="button"
           onClick={() => onPage(Math.max(1, page - 1))}
           disabled={page <= 1}
-          className="focus-ring inline-flex h-10 items-center gap-2 rounded-[4px] border border-white/[0.08] px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#b8b8b8] disabled:opacity-35"
+          className="focus-ring inline-flex h-10 items-center gap-2 rounded-md border border-white/[0.08] px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#b8b8b8] disabled:opacity-35"
         >
           <ArrowLeft size={14} />
           Anterior
@@ -513,7 +513,7 @@ function ScanTablePanel({
           type="button"
           onClick={() => onPage(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
-          className="focus-ring inline-flex h-10 items-center gap-2 rounded-[4px] border border-white/[0.08] px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#b8b8b8] disabled:opacity-35"
+          className="focus-ring inline-flex h-10 items-center gap-2 rounded-md border border-white/[0.08] px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-[#b8b8b8] disabled:opacity-35"
         >
           Siguiente
           <ArrowRight size={14} />
@@ -570,14 +570,14 @@ function LoadingState() {
 function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#050505] px-5 text-[#f2f2f2]">
-      <section className="max-w-[460px] rounded-[6px] border border-white/[0.08] bg-white/[0.03] p-7 text-center">
+      <section className="max-w-[460px] rounded-lg border border-white/[0.08] bg-white/[0.03] p-7 text-center">
         <BarChart3 className="mx-auto mb-5 text-[#707070]" size={30} strokeWidth={1.5} />
         <h1 className="text-[24px] font-medium tracking-[-0.04em]">Error al cargar datos</h1>
         <p className="mt-3 text-[14px] leading-6 text-[#8a8a8a]">{error}</p>
         <button
           type="button"
           onClick={onRetry}
-          className="focus-ring mt-6 rounded-[4px] border border-white/[0.1] px-5 py-3 text-[12px] font-medium uppercase tracking-[0.16em] text-[#d8d8d8]"
+          className="focus-ring mt-6 rounded-md border border-white/[0.1] px-5 py-3 text-[12px] font-medium uppercase tracking-[0.16em] text-[#d8d8d8]"
         >
           Reintentar
         </button>
@@ -666,7 +666,7 @@ export default function DashboardPage() {
       <header className="sticky top-16 z-30 border-b border-white/[0.06] bg-black/80 backdrop-blur-xl md:bg-black/60">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 md:px-8">
           <div className="flex items-center gap-4">
-            <a href="/" className="focus-ring hidden h-11 w-11 items-center justify-center rounded-[4px] bg-[#f2f2f2] text-[14px] font-semibold tracking-[-0.06em] text-black sm:flex">
+            <a href="/" className="focus-ring hidden h-11 w-11 items-center justify-center rounded-md bg-[#f2f2f2] text-[14px] font-semibold tracking-[-0.06em] text-black sm:flex">
               7F
             </a>
             <div>
@@ -680,7 +680,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <a href="/" className="focus-ring hidden items-center gap-2 rounded-[4px] border border-white/[0.08] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-[#9a9a9a] transition-colors hover:text-[#f2f2f2] md:inline-flex">
+            <a href="/" className="focus-ring hidden items-center gap-2 rounded-md border border-white/[0.08] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-[#9a9a9a] transition-colors hover:text-[#f2f2f2] md:inline-flex">
               <ArrowLeft size={14} />
               Sitio
             </a>
@@ -703,7 +703,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-[4px] border border-white/[0.08] bg-white/[0.03] p-1">
+            <div className="inline-flex rounded-md border border-white/[0.08] bg-white/[0.03] p-1">
               {ranges.map((item) => (
                 <button
                   key={item.value}
@@ -712,7 +712,7 @@ export default function DashboardPage() {
                     setRange(item.value);
                     setScanPage(1);
                   }}
-                  className={`focus-ring h-9 rounded-[3px] px-4 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors ${
+                  className={`focus-ring h-9 rounded px-4 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors ${
                     range === item.value
                       ? "bg-[#f2f2f2] text-black"
                       : "text-[#8a8a8a] hover:text-[#f2f2f2]"
@@ -722,7 +722,7 @@ export default function DashboardPage() {
                 </button>
               ))}
             </div>
-            <span className="inline-flex h-11 items-center gap-2 rounded-[4px] border border-white/[0.08] px-4 text-[12px] text-[#8a8a8a]">
+            <span className="inline-flex h-11 items-center gap-2 rounded-md border border-white/[0.08] px-4 text-[12px] text-[#8a8a8a]">
               <Calendar size={14} strokeWidth={1.5} />
               {ranges.find((item) => item.value === range)?.label}
             </span>
@@ -730,7 +730,7 @@ export default function DashboardPage() {
               type="button"
               onClick={() => bundle && exportCsv(bundle, campaignId)}
               disabled={!bundle}
-              className="focus-ring inline-flex h-11 items-center gap-2 rounded-[4px] bg-[#f2f2f2] px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-black disabled:opacity-45"
+              className="focus-ring inline-flex h-11 items-center gap-2 rounded-md bg-[#f2f2f2] px-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-black disabled:opacity-45"
             >
               <Download size={14} />
               CSV
@@ -738,7 +738,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="dash-reveal mb-8 grid gap-5 rounded-[6px] border border-white/[0.07] bg-white/[0.03] p-4 sm:p-5 lg:grid-cols-[1fr_auto] lg:items-center">
+        <section className="dash-reveal mb-8 grid gap-5 rounded-lg border border-white/[0.07] bg-white/[0.03] p-4 sm:p-5 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -763,7 +763,7 @@ export default function DashboardPage() {
                       setCampaignId(item.value);
                       setScanPage(1);
                     }}
-                    className={`focus-ring h-10 rounded-[4px] border px-4 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors ${
+                    className={`focus-ring h-10 rounded-md border px-4 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors ${
                       campaignId === item.value
                         ? "border-[#f2f2f2] bg-[#f2f2f2] text-black"
                         : "border-white/[0.08] bg-black/20 text-[#8a8a8a] hover:border-white/[0.14] hover:text-[#f2f2f2]"
@@ -802,7 +802,7 @@ export default function DashboardPage() {
                   href={QR_GENERAL_TRACKING_URL}
                   target="_blank"
                   rel="noreferrer"
-                  className="focus-ring inline-flex h-9 items-center gap-2 rounded-[4px] border border-white/[0.08] px-3 font-mono text-[9px] uppercase tracking-[0.12em] text-[#9a9a9a] hover:text-white"
+                  className="focus-ring inline-flex h-9 items-center gap-2 rounded-md border border-white/[0.08] px-3 font-mono text-[9px] uppercase tracking-[0.12em] text-[#9a9a9a] hover:text-white"
                 >
                   <ExternalLink size={12} />
                   Probar
@@ -810,7 +810,7 @@ export default function DashboardPage() {
                 <a
                   href={QR_GENERAL_ASSET_URL}
                   download="7fitment-qr-general.svg"
-                  className="focus-ring inline-flex h-9 items-center gap-2 rounded-[4px] bg-[#f2f2f2] px-3 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-black"
+                  className="focus-ring inline-flex h-9 items-center gap-2 rounded-md bg-[#f2f2f2] px-3 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-black"
                 >
                   <Download size={12} />
                   SVG
@@ -821,7 +821,7 @@ export default function DashboardPage() {
         </section>
 
         {error ? (
-          <div className="dash-reveal mb-6 rounded-[4px] border border-red-300/20 bg-red-500/10 p-4 text-[14px] text-red-200">
+          <div className="dash-reveal mb-6 rounded-md border border-red-300/20 bg-red-500/10 p-4 text-[14px] text-red-200">
             {error}
           </div>
         ) : null}

@@ -279,11 +279,11 @@ export default function ShowcasePage({ slug }: { slug: string }) {
                 {data.profile.description}
               </p>
             ) : null}
-            <div className="garage-reveal mt-8 flex flex-wrap gap-2">
+            <div className="garage-reveal mt-9 flex flex-wrap gap-2.5">
               {(data?.services ?? []).map((service) => (
                 <span
                   key={service.service_type}
-                  className="border border-white/10 bg-white/[0.035] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#b8b8b8]"
+                  className="rounded-full border border-white/10 bg-white/[0.045] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.18em] text-[#c4c4c4] backdrop-blur-sm"
                 >
                   {service.service_type}
                 </span>
@@ -291,11 +291,11 @@ export default function ShowcasePage({ slug }: { slug: string }) {
             </div>
           </div>
 
-          <aside className="garage-reveal border border-white/10 bg-[#0a0a0a]/80 p-5 backdrop-blur-xl">
-            <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.26em] text-[#707070]">
+          <aside className="garage-reveal rounded-xl border border-white/10 bg-black/45 p-6 shadow-[0_40px_90px_-40px_rgba(0,0,0,0.9)] backdrop-blur-xl sm:p-7">
+            <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.26em] text-[#787878]">
               Acceso privado
             </p>
-            <p className="text-[15px] leading-7 text-[#a8a8a8]">
+            <p className="text-[15px] leading-7 text-[#ababab]">
               El expediente completo, garantia y recomendaciones tecnicas se consultan
               con el PIN entregado por 7Fitment.
             </p>
@@ -308,7 +308,7 @@ export default function ShowcasePage({ slug }: { slug: string }) {
                   element_id: "open-private-portal",
                 });
               }}
-              className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-3 bg-[#f2f2f2] px-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-black transition-opacity hover:opacity-85"
+              className="mt-7 inline-flex min-h-12 w-full items-center justify-center gap-3 rounded-lg bg-[#f2f2f2] px-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-black transition-colors duration-300 hover:bg-white"
             >
               <LockKeyhole size={15} />
               Abrir portal
@@ -320,8 +320,8 @@ export default function ShowcasePage({ slug }: { slug: string }) {
 
       <section className="mx-auto max-w-7xl px-5 py-14 md:px-10 md:py-20">
         {error ? (
-          <div className="border border-white/10 bg-white/[0.025] p-8 text-center">
-            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.26em] text-[#707070]">
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-8 text-center backdrop-blur-sm">
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.26em] text-[#787878]">
               Auto no disponible
             </p>
             <p className="text-[16px] text-[#b8b8b8]">{error}</p>
@@ -329,25 +329,25 @@ export default function ShowcasePage({ slug }: { slug: string }) {
         ) : null}
 
         {!error && !loading && !publicMedia.length ? (
-          <div className="border border-white/10 bg-white/[0.025] p-8 text-center">
-            <Camera className="mx-auto mb-5 text-[#707070]" size={28} strokeWidth={1.5} />
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-8 text-center backdrop-blur-sm">
+            <Camera className="mx-auto mb-5 text-[#787878]" size={28} strokeWidth={1.5} />
             <p className="text-[15px] text-[#a8a8a8]">
               Galeria en preparacion. El expediente publico estara disponible pronto.
             </p>
           </div>
         ) : null}
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
           {publicMedia.map((media, index) => (
             <article
               key={`${media.media_url}-${index}`}
               onClick={(event) => openLightbox(event, index)}
-              className={`showcase-media group cursor-pointer overflow-hidden border border-white/10 bg-[#0a0a0a] ${
+              className={`showcase-media group cursor-pointer overflow-hidden rounded-lg border border-white/[0.09] bg-[#0a0a0a] transition-colors duration-300 hover:border-white/[0.2] ${
                 index % 3 === 0 ? "md:col-span-2" : ""
               }`}
             >
               <div className="relative aspect-[16/10] overflow-hidden bg-[#111]">
-                <span className="absolute left-4 top-3 z-10 font-mono text-[10px] uppercase tracking-[0.2em] text-white/40 transition-colors group-hover:text-white/80">
+                <span className="absolute left-4 top-3 z-10 rounded-full border border-white/10 bg-black/35 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/55 backdrop-blur-md transition-colors duration-300 group-hover:text-white/85">
                   {String(index + 1).padStart(2, "0")} / {String(publicMedia.length).padStart(2, "0")}
                 </span>
                 <div
@@ -371,11 +371,11 @@ export default function ShowcasePage({ slug }: { slug: string }) {
                   )}
                 </div>
               </div>
-              <div className="showcase-cap flex items-center justify-between gap-4 p-4">
-                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#707070]">
+              <div className="showcase-cap flex items-center justify-between gap-4 border-t border-white/[0.06] px-5 py-4">
+                <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[#787878]">
                   {media.serviceType}
                 </p>
-                <p className="truncate text-[13px] text-[#b8b8b8]">
+                <p className="truncate text-[13px] text-[#bcbcbc]">
                   {media.caption ?? "Proceso 7Fitment"}
                 </p>
               </div>

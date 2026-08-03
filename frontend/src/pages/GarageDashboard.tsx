@@ -46,17 +46,19 @@ function ServiceCard({ service }: { service: PortalServiceRecord }) {
   const progress = warrantyProgress(service);
 
   return (
-    <article className="garage-card border border-white/10 bg-white/[0.035] p-5">
-      <div className="mb-5 flex items-start justify-between gap-4">
+    <article className="garage-card rounded-xl border border-white/[0.09] bg-white/[0.03] p-6 backdrop-blur-sm sm:p-7">
+      <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.24em] text-[#707070]">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.24em] text-[#787878]">
             {service.service_type}
           </p>
           <h3 className="text-[24px] font-medium leading-none tracking-[-0.055em]">
             {service.title ?? "Servicio 7Fitment"}
           </h3>
         </div>
-        <ShieldCheck className="text-[#d8d8d8]" size={22} strokeWidth={1.4} />
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-white/[0.1] bg-white/[0.04] text-[#d8d8d8]">
+          <ShieldCheck size={20} strokeWidth={1.4} />
+        </span>
       </div>
 
       <div className="grid gap-3 text-[13px] text-[#a8a8a8] sm:grid-cols-2">
@@ -70,22 +72,22 @@ function ServiceCard({ service }: { service: PortalServiceRecord }) {
         </span>
       </div>
 
-      <div className="mt-6">
-        <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[#707070]">
+      <div className="mt-7">
+        <div className="mb-2.5 flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-[#787878]">
           <span>Vigencia restante</span>
           <span>{Math.round(progress)}%</span>
         </div>
-        <div className="h-[3px] overflow-hidden bg-white/[0.08]">
+        <div className="h-[3px] overflow-hidden rounded-full bg-white/[0.08]">
           <div
-            className="warranty-bar h-full origin-left bg-[#f2f2f2]"
+            className="warranty-bar h-full origin-left rounded-full bg-[#f2f2f2]"
             data-progress={progress / 100}
           />
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2">
-        <div className="border border-white/[0.07] bg-black/20 p-4">
-          <p className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.22em] text-[#707070]">
+      <div className="mt-7 grid gap-4 md:grid-cols-2">
+        <div className="rounded-lg border border-white/[0.07] bg-black/30 p-4">
+          <p className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.22em] text-[#787878]">
             <Sparkles size={14} />
             Lavado
           </p>
@@ -93,8 +95,8 @@ function ServiceCard({ service }: { service: PortalServiceRecord }) {
             {service.washing_recommendations ?? "Recomendaciones pendientes por cargar."}
           </p>
         </div>
-        <div className="border border-white/[0.07] bg-black/20 p-4">
-          <p className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.22em] text-[#707070]">
+        <div className="rounded-lg border border-white/[0.07] bg-black/30 p-4">
+          <p className="mb-3 flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.22em] text-[#787878]">
             <Wrench size={14} />
             Cuidado tecnico
           </p>
@@ -105,8 +107,8 @@ function ServiceCard({ service }: { service: PortalServiceRecord }) {
       </div>
 
       {service.internal_notes ? (
-        <div className="mt-4 border border-white/[0.07] bg-black/20 p-4">
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.22em] text-[#707070]">
+        <div className="mt-4 rounded-lg border border-white/[0.07] bg-black/30 p-4">
+          <p className="mb-2 text-[10px] font-medium uppercase tracking-[0.22em] text-[#787878]">
             Notas internas
           </p>
           <p className="text-[13px] leading-6 text-[#b8b8b8]">{service.internal_notes}</p>
@@ -114,9 +116,9 @@ function ServiceCard({ service }: { service: PortalServiceRecord }) {
       ) : null}
 
       {service.media.length ? (
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {service.media.map((media) => (
-            <figure key={media.id} className="aspect-[4/3] overflow-hidden border border-white/[0.07] bg-black/35">
+            <figure key={media.id} className="aspect-[4/3] overflow-hidden rounded-md border border-white/[0.07] bg-black/35">
               {media.media_type === "video" ? (
                 <video src={media.media_url} className="h-full w-full object-cover" controls preload="metadata" playsInline />
               ) : (
@@ -182,8 +184,8 @@ function ClaimRequestPanel({
   }
 
   return (
-    <section className="garage-card mb-5 border border-white/10 bg-white/[0.025]">
-      <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between">
+    <section className="garage-card mb-6 rounded-xl border border-white/[0.09] bg-white/[0.03] backdrop-blur-sm">
+      <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
         <div className="flex max-w-2xl items-start gap-4">
           <ShieldAlert className="mt-1 shrink-0 text-[#d8d8d8]" size={20} strokeWidth={1.4} />
           <div>
@@ -205,7 +207,7 @@ function ClaimRequestPanel({
             setOpen((current) => !current);
           }}
           aria-expanded={open}
-          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 border border-white/15 px-4 font-mono text-[9px] uppercase tracking-[0.16em] text-[#d8d8d8] transition-colors hover:bg-white hover:text-black"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-white/15 px-5 font-mono text-[9px] uppercase tracking-[0.16em] text-[#d8d8d8] transition-colors duration-300 hover:bg-white hover:text-black"
         >
           {open ? <X size={14} /> : <ShieldAlert size={14} />}
           {open ? "Cerrar" : "Reportar incidencia"}
@@ -213,14 +215,14 @@ function ClaimRequestPanel({
       </div>
 
       {open ? (
-        <form onSubmit={submit} className="grid gap-4 border-t border-white/[0.07] p-5 md:grid-cols-2">
+        <form onSubmit={submit} className="grid gap-4 border-t border-white/[0.07] p-6 md:grid-cols-2 sm:p-7">
           <label className="grid gap-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[#707070]">
             Poliza
             <select
               value={policyId}
               onChange={(event) => setPolicyId(event.target.value)}
               required
-              className="h-12 border border-white/10 bg-[#080808] px-3 font-sans text-[13px] normal-case tracking-normal text-[#f2f2f2] outline-none focus:border-white/30"
+              className="h-12 rounded-lg border border-white/10 bg-[#080808] px-3 font-sans text-[13px] normal-case tracking-normal text-[#f2f2f2] outline-none transition-colors duration-300 focus:border-white/30"
             >
               {eligible.map((policy) => (
                 <option key={policy.id} value={policy.id}>
@@ -236,7 +238,7 @@ function ClaimRequestPanel({
               value={incidentAt}
               max={new Date().toISOString().slice(0, 10)}
               onChange={(event) => setIncidentAt(event.target.value)}
-              className="h-12 border border-white/10 bg-[#080808] px-3 font-sans text-[13px] normal-case tracking-normal text-[#f2f2f2] outline-none focus:border-white/30"
+              className="h-12 rounded-lg border border-white/10 bg-[#080808] px-3 font-sans text-[13px] normal-case tracking-normal text-[#f2f2f2] outline-none transition-colors duration-300 focus:border-white/30"
             />
           </label>
           <label className="grid gap-2 font-mono text-[9px] uppercase tracking-[0.16em] text-[#707070] md:col-span-2">
@@ -249,7 +251,7 @@ function ClaimRequestPanel({
               required
               rows={4}
               placeholder="Describe la zona afectada, cuando lo notaste y cualquier detalle visible."
-              className="resize-y border border-white/10 bg-[#080808] p-3 font-sans text-[13px] normal-case leading-6 tracking-normal text-[#f2f2f2] outline-none placeholder:text-[#505050] focus:border-white/30"
+              className="resize-y rounded-lg border border-white/10 bg-[#080808] p-3 font-sans text-[13px] normal-case leading-6 tracking-normal text-[#f2f2f2] outline-none transition-colors duration-300 placeholder:text-[#505050] focus:border-white/30"
             />
           </label>
           <div className="flex flex-col gap-3 md:col-span-2 sm:flex-row sm:items-center sm:justify-between">
@@ -259,7 +261,7 @@ function ClaimRequestPanel({
             <button
               type="submit"
               disabled={submitting || description.trim().length < 20}
-              className="h-12 bg-[#f2f2f2] px-5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-black transition-opacity disabled:cursor-not-allowed disabled:opacity-35"
+              className="h-12 rounded-lg bg-[#f2f2f2] px-6 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-black transition-colors duration-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-35"
             >
               {submitting ? "Enviando" : "Enviar a revision"}
             </button>
@@ -384,11 +386,11 @@ export default function GarageDashboard() {
   if (error || !data) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#050505] px-5 text-[#f2f2f2]">
-        <section className="max-w-[440px] border border-white/10 bg-white/[0.035] p-7 text-center">
-          <p className="mb-5 text-[14px] text-[#b8b8b8]">{error ?? "Sin datos disponibles."}</p>
+        <section className="max-w-[440px] rounded-xl border border-white/[0.09] bg-white/[0.03] p-8 text-center backdrop-blur-sm">
+          <p className="mb-6 text-[14px] text-[#b8b8b8]">{error ?? "Sin datos disponibles."}</p>
           <a
             href="/portal"
-            className="inline-flex h-12 items-center justify-center bg-[#f2f2f2] px-5 text-[11px] font-semibold uppercase tracking-[0.16em] text-black"
+            className="inline-flex h-12 items-center justify-center rounded-lg bg-[#f2f2f2] px-6 text-[11px] font-semibold uppercase tracking-[0.16em] text-black transition-colors duration-300 hover:bg-white"
           >
             Volver al portal
           </a>
@@ -412,7 +414,7 @@ export default function GarageDashboard() {
               window.history.replaceState({}, "", "/portal");
               window.dispatchEvent(new PopStateEvent("popstate"));
             }}
-            className="inline-flex items-center gap-2 border border-white/10 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-[#8a8a8a] hover:text-[#f2f2f2]"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-[#8a8a8a] transition-colors duration-300 hover:border-white/25 hover:text-[#f2f2f2]"
           >
             <LogOut size={14} />
             Salir
@@ -421,51 +423,53 @@ export default function GarageDashboard() {
       </header>
 
       <div className="mx-auto max-w-7xl px-5 py-10 md:px-8 md:py-14">
-        <section className="garage-card mb-7 grid gap-8 border border-white/10 bg-white/[0.035] p-6 md:grid-cols-[1fr_0.9fr] md:p-8">
+        <section className="garage-card mb-8 grid gap-9 rounded-xl border border-white/[0.09] bg-white/[0.03] p-7 backdrop-blur-sm md:grid-cols-[1fr_0.9fr] md:p-9">
           <div>
-            <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.28em] text-[#707070]">
+            <p className="mb-5 font-mono text-[10px] uppercase tracking-[0.28em] text-[#787878]">
               Expediente privado
             </p>
             <h1 className="garage-title text-[clamp(3rem,8vw,7rem)] font-light leading-[0.85] tracking-[-0.075em]">
               {vehicleName}
             </h1>
           </div>
-          <div className="grid gap-3 text-[13px] text-[#a8a8a8] sm:grid-cols-2">
-            <span className="border border-white/[0.07] bg-black/20 p-4">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#707070]">Cliente</span><br />
+          <div className="grid content-start gap-3.5 text-[13px] text-[#a8a8a8] sm:grid-cols-2">
+            <span className="rounded-lg border border-white/[0.07] bg-black/30 p-4">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#787878]">Cliente</span><br />
               <strong className="text-[#f2f2f2]">{data.client.full_name}</strong>
             </span>
-            <span className="border border-white/[0.07] bg-black/20 p-4">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#707070]">VIN</span><br />
+            <span className="rounded-lg border border-white/[0.07] bg-black/30 p-4">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#787878]">VIN</span><br />
               <strong className="text-[#f2f2f2]">{data.vehicle.vin ?? "No registrado"}</strong>
             </span>
-            <span className="border border-white/[0.07] bg-black/20 p-4">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#707070]">Placas</span><br />
+            <span className="rounded-lg border border-white/[0.07] bg-black/30 p-4">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#787878]">Placas</span><br />
               <strong className="text-[#f2f2f2]">{data.vehicle.plate ?? "No registradas"}</strong>
             </span>
-            <span className="border border-white/[0.07] bg-black/20 p-4">
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#707070]">Color</span><br />
+            <span className="rounded-lg border border-white/[0.07] bg-black/30 p-4">
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#787878]">Color</span><br />
               <strong className="text-[#f2f2f2]">{data.vehicle.color ?? "No registrado"}</strong>
             </span>
           </div>
         </section>
 
         {data.warranties.length ? (
-          <section className="mb-5 grid gap-4 md:grid-cols-2">
+          <section className="mb-6 grid gap-4 md:grid-cols-2">
             {data.warranties.map((policy) => (
-              <article key={policy.id} className="garage-card border border-white/10 bg-white/[0.025] p-5">
+              <article key={policy.id} className="garage-card rounded-xl border border-white/[0.09] bg-white/[0.03] p-6 backdrop-blur-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#626262]">Poliza / {policy.policy_number}</p>
-                    <h2 className="mt-2 text-[20px] font-medium tracking-[-0.04em]">Cobertura 7Fitment</h2>
+                    <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#6c6c6c]">Poliza / {policy.policy_number}</p>
+                    <h2 className="mt-2.5 text-[20px] font-medium tracking-[-0.04em]">Cobertura 7Fitment</h2>
                   </div>
-                  <ShieldCheck size={20} strokeWidth={1.4} />
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md border border-white/[0.1] bg-white/[0.04] text-[#d8d8d8]">
+                    <ShieldCheck size={18} strokeWidth={1.4} />
+                  </span>
                 </div>
-                <div className="mt-6 grid grid-cols-2 gap-3 border-t border-white/[0.06] pt-4 text-[12px] text-[#8a8a8a]">
+                <div className="mt-6 grid grid-cols-2 gap-3 border-t border-white/[0.06] pt-5 text-[12px] text-[#8a8a8a]">
                   <p><span className="admin-label">Vigente desde</span>{formatDate(policy.effective_date)}</p>
                   <p><span className="admin-label">Expira</span>{formatDate(policy.expiration_date)}</p>
                 </div>
-                <span className="mt-5 inline-flex rounded-[3px] border border-white/[0.08] px-2 py-1 font-mono text-[8px] uppercase tracking-[0.14em] text-[#b8b8b8]">{policy.status}</span>
+                <span className="mt-5 inline-flex rounded-full border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.14em] text-[#b8b8b8]">{policy.status}</span>
               </article>
             ))}
           </section>
@@ -490,10 +494,10 @@ export default function GarageDashboard() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {data.warranty_claims.map((claim) => (
-                <article key={claim.id} className="garage-card border border-white/10 bg-white/[0.025] p-5">
-                  <div className="flex items-start justify-between gap-4"><div><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#626262]">{claim.claim_number}</p><p className="mt-3 text-[13px] leading-6 text-[#b8b8b8]">{claim.description}</p></div><span className="border border-white/[0.08] px-2 py-1 font-mono text-[8px] uppercase tracking-[0.12em] text-[#9a9a9a]">{claim.status}</span></div>
+                <article key={claim.id} className="garage-card rounded-xl border border-white/[0.09] bg-white/[0.03] p-6 backdrop-blur-sm">
+                  <div className="flex items-start justify-between gap-4"><div><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#6c6c6c]">{claim.claim_number}</p><p className="mt-3 text-[13px] leading-6 text-[#b8b8b8]">{claim.description}</p></div><span className="rounded-full border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 font-mono text-[8px] uppercase tracking-[0.12em] text-[#9a9a9a]">{claim.status}</span></div>
                   {claim.resolution_notes ? <p className="mt-4 border-t border-white/[0.06] pt-4 text-[12px] leading-5 text-[#8a8a8a]">{claim.resolution_notes}</p> : null}
-                  {claim.evidence.length ? <div className="mt-4 grid grid-cols-3 gap-2">{claim.evidence.map((item) => item.media_type === "image" ? <img key={item.media_asset_id} src={item.media_url} alt={item.original_filename} loading="lazy" decoding="async" className="aspect-square w-full object-cover" /> : <a key={item.media_asset_id} href={item.media_url} target="_blank" rel="noreferrer" className="grid aspect-square place-items-center border border-white/[0.08] px-2 text-center font-mono text-[8px] uppercase text-[#707070]">Ver archivo</a>)}</div> : null}
+                  {claim.evidence.length ? <div className="mt-4 grid grid-cols-3 gap-2.5">{claim.evidence.map((item) => item.media_type === "image" ? <img key={item.media_asset_id} src={item.media_url} alt={item.original_filename} loading="lazy" decoding="async" className="aspect-square w-full rounded-md border border-white/[0.07] object-cover" /> : <a key={item.media_asset_id} href={item.media_url} target="_blank" rel="noreferrer" className="grid aspect-square place-items-center rounded-md border border-white/[0.08] px-2 text-center font-mono text-[8px] uppercase text-[#707070] transition-colors duration-300 hover:border-white/25 hover:text-white">Ver archivo</a>)}</div> : null}
                 </article>
               ))}
             </div>
@@ -507,8 +511,8 @@ export default function GarageDashboard() {
         </div>
 
         {!data.services.length ? (
-          <section className="garage-card border border-white/10 bg-white/[0.035] p-8 text-center">
-            <Car className="mx-auto mb-4 text-[#707070]" size={28} strokeWidth={1.5} />
+          <section className="garage-card rounded-xl border border-white/[0.09] bg-white/[0.03] p-10 text-center backdrop-blur-sm">
+            <Car className="mx-auto mb-4 text-[#787878]" size={28} strokeWidth={1.5} />
             <p className="text-[14px] text-[#a8a8a8]">
               Aun no hay servicios cargados para este vehiculo.
             </p>
