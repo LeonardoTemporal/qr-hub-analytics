@@ -520,6 +520,10 @@ def test_proxy_and_edge_limits_are_wired_for_production() -> None:
 
     assert "INTERNAL_PROXY_SECRET must be configured" in compose
     assert 'Host(`api.7fitment.com`) && PathPrefix(`/api`)' in compose
+    assert "traefik.http.routers.qrhub-tracking.rule" in compose
+    assert "PathPrefix(`/t/`)" in compose
+    assert "PathPrefix(`/r/`)" in compose
+    assert "PathPrefix(`/qr/`)" in compose
     assert "limit_req_zone $qr_client_ip zone=browser_location" in nginx
     assert "limit_req_zone $qr_client_ip zone=tracking_events" in nginx
     assert "zone=qr_redirects" in nginx

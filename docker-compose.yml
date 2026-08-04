@@ -93,6 +93,10 @@ services:
       - traefik.http.routers.qrhub-api.entrypoints=web
       - traefik.http.routers.qrhub-api.priority=110
       - traefik.http.routers.qrhub-api.service=qrhub-backend
+      - "traefik.http.routers.qrhub-tracking.rule=Host(`api.7fitment.com`) && (PathPrefix(`/t/`) || PathPrefix(`/r/`) || PathPrefix(`/qr/`))"
+      - traefik.http.routers.qrhub-tracking.entrypoints=web
+      - traefik.http.routers.qrhub-tracking.priority=120
+      - traefik.http.routers.qrhub-tracking.service=qrhub-backend
 
   qrhub_worker:
     image: ${QRHUB_BACKEND_IMAGE:-ghcr.io/leonardotemporal/qrhub-backend:main}
