@@ -11,6 +11,7 @@ import {
   MapPin,
   Monitor,
   PieChart as PieChartIcon,
+  RefreshCw,
   Smartphone,
   TrendingUp,
   type LucideIcon,
@@ -621,6 +622,20 @@ export default function DashboardPage() {
   }, [load]);
 
   useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    const interval = window.setInterval(refreshWhenVisible, 30_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [load]);
+
+  useEffect(() => {
     if (!bundle || !dashboardRef.current) return;
     if (prefersReducedMotion()) {
       gsap.set(".dash-reveal", { opacity: 1, y: 0 });
@@ -726,6 +741,16 @@ export default function DashboardPage() {
               <Calendar size={14} strokeWidth={1.5} />
               {ranges.find((item) => item.value === range)?.label}
             </span>
+            <button
+              type="button"
+              onClick={() => void load()}
+              disabled={loading}
+              className="focus-ring inline-grid h-11 w-11 place-items-center rounded-md border border-white/[0.08] text-[#8a8a8a] transition-colors hover:text-white disabled:opacity-45"
+              aria-label="Actualizar analíticas"
+              title="Actualizar analíticas"
+            >
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            </button>
             <button
               type="button"
               onClick={() => bundle && exportCsv(bundle, campaignId)}

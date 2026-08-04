@@ -37,6 +37,9 @@ export default function AdminOverviewPage() {
   const analytics = useQuery({
     queryKey: ["admin", "summary", "30d"],
     queryFn: () => fetchAdminSummary("30d"),
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
   const error = clients.error ?? vehicles.error ?? orders.error ?? warranties.error ?? media.error ?? analytics.error;
   const activeOrders = orders.data?.filter((order) => !["delivered", "cancelled"].includes(order.status)) ?? [];
