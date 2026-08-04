@@ -1,0 +1,12 @@
+services:
+  qrhub_backend:
+    pull_policy: build
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+  qrhub_worker:
+    pull_policy: build
+    build:
+      context: ./backend
+      dockerfile: Dockerfile

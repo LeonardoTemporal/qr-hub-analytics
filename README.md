@@ -379,13 +379,13 @@ cp .env.example .env
 # Editar .env con valores reales (especialmente POSTGRES_PASSWORD)
 
 # 3. Construir e iniciar el stack con puertos locales
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml up -d --build
 
 # 4. Verificar estado de los servicios
-docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
+docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml ps
 
 # 5. Consultar logs del backend
-docker compose -f docker-compose.yml -f docker-compose.dev.yml logs qrhub_backend -f
+docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml logs qrhub_backend -f
 ```
 
 Los servicios quedan disponibles en:

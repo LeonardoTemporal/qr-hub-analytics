@@ -5,7 +5,7 @@
 #
 # Usage:
 #   cp .env.example .env           # fill in all required variables
-#   docker compose up -d --build
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 #
 # All services communicate over the internal "qrhub_net" bridge network.
 # Only the ports listed under "ports" are exposed to the host.
@@ -43,9 +43,8 @@ services:
   # Depends on "db" being healthy before accepting traffic.
   # ---------------------------------------------------------------------------
   qrhub_backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${QRHUB_BACKEND_IMAGE:-ghcr.io/leonardotemporal/qrhub-backend:main}
+    pull_policy: always
     container_name: qrhub_backend
     restart: unless-stopped
     environment:
@@ -96,9 +95,8 @@ services:
       - traefik.http.routers.qrhub-api.service=qrhub-backend
 
   qrhub_worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${QRHUB_BACKEND_IMAGE:-ghcr.io/leonardotemporal/qrhub-backend:main}
+    pull_policy: always
     container_name: qrhub_worker
     restart: unless-stopped
     command: ["python", "-m", "app.worker"]
