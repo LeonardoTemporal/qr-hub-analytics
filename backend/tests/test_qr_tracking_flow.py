@@ -53,6 +53,7 @@ def test_qr_redirect_is_secure_and_not_cacheable_behind_proxy(monkeypatch) -> No
     assert response.status_code == 302
     assert response.headers["location"] == "https://7fitment.com/enlaces?qr=1"
     assert "Secure" in response.headers["set-cookie"]
+    assert response.headers["x-qrhub-set-cookie"] == response.headers["set-cookie"]
     assert response.headers["cache-control"] == "no-store, private, max-age=0"
     assert response.headers["pragma"] == "no-cache"
     assert response.headers["referrer-policy"] == "no-referrer"
@@ -93,6 +94,8 @@ def test_local_http_redirect_does_not_force_secure_cookie(monkeypatch) -> None:
     response = asyncio.run(
         redirect.redirect_campaign("qr_general", _request(), BackgroundTasks())
     )
+
+    assert "x-qrhub-set-cookie" not in response.headers
 
     assert "Secure" not in response.headers["set-cookie"]
 

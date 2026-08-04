@@ -91,9 +91,10 @@ def _get_client_ip(request: Request) -> str:
     if _is_trusted_proxy_peer(request):
         candidates.extend(
             (
-                request.headers.get("CF-Connecting-IP"),
+                request.headers.get("X-QRHub-Client-IP"),
                 (request.headers.get("X-Forwarded-For") or "").split(",")[0],
                 request.headers.get("X-Real-IP"),
+                request.headers.get("CF-Connecting-IP"),
             )
         )
     candidates.append(request.client.host if request.client else None)
@@ -442,6 +443,8 @@ async def redirect_campaign(
             path="/",
             domain=settings.COOKIE_DOMAIN,
         )
+        if _is_trusted_proxy_peer(request):
+            response.headers["X-QRHub-Set-Cookie"] = response.headers["Set-Cookie"]
     return response
 
 

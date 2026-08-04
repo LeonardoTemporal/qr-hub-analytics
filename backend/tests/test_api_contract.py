@@ -154,6 +154,7 @@ def test_client_ip_prefers_forwarded_headers(monkeypatch) -> None:
             "method": "GET",
             "path": "/t/qr_print",
             "headers": [
+                (b"x-qrhub-client-ip", b"192.0.2.25"),
                 (b"cf-connecting-ip", b"198.51.100.40"),
                 (b"x-forwarded-for", b"203.0.113.10, 10.0.0.4"),
                 (b"x-real-ip", b"198.51.100.20"),
@@ -166,7 +167,29 @@ def test_client_ip_prefers_forwarded_headers(monkeypatch) -> None:
         }
     )
 
-    assert redirect._get_client_ip(request) == "198.51.100.40"
+    assert redirect._get_client_ip(request) == "192.0.2.25"
+
+
+def test_client_ip_ignores_internal_header_without_proxy_secret(monkeypatch) -> None:
+    from starlette.requests import Request
+
+    from app.routers import redirect
+
+    monkeypatch.setattr(redirect.settings, "INTERNAL_PROXY_SECRET", "test-proxy-secret")
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/t/qr_print",
+            "headers": [(b"x-qrhub-client-ip", b"192.0.2.25")],
+            "client": ("127.0.0.1", 12345),
+            "server": ("testserver", 80),
+            "scheme": "http",
+            "query_string": b"",
+        }
+    )
+
+    assert redirect._get_client_ip(request) == "127.0.0.1"
 
 
 def test_client_ip_falls_back_to_first_forwarded_ip(monkeypatch) -> None:

@@ -19,6 +19,7 @@ describe("Cloudflare edge proxy", () => {
       expect(request.headers.get("cf-connecting-ip")).toBe("203.0.113.8");
       expect(request.headers.get("x-real-ip")).toBe("203.0.113.8");
       expect(request.headers.get("x-forwarded-for")).toBe("203.0.113.8");
+      expect(request.headers.get("x-qrhub-client-ip")).toBe("203.0.113.8");
       expect(request.headers.get("x-forwarded-host")).toBe("7fitment.com");
       expect(request.headers.get("x-forwarded-proto")).toBe("https");
       return new Response("ok", {
@@ -40,6 +41,31 @@ describe("Cloudflare edge proxy", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("set-cookie")).toContain("admin_session");
     expect(upstreamFetch).toHaveBeenCalledOnce();
+  });
+
+  it("bridges the trusted attribution cookie without exposing its internal header", async () => {
+    const response = await proxyRequest(
+      new Request("https://7fitment.com/t/qr_general", {
+        headers: { "CF-Connecting-IP": "203.0.113.8" },
+      }),
+      env,
+      vi.fn(async () =>
+        new Response(null, {
+          status: 302,
+          headers: {
+            Location: "https://7fitment.com/enlaces?qr=1",
+            "X-QRHub-Set-Cookie":
+              "qr_attribution=opaque-token; HttpOnly; Max-Age=2592000; Path=/; SameSite=lax; Secure",
+          },
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("set-cookie")).toContain(
+      "qr_attribution=opaque-token",
+    );
+    expect(response.headers.has("x-qrhub-set-cookie")).toBe(false);
   });
 
   it("fails open to the links page when QR tracking is unavailable", async () => {

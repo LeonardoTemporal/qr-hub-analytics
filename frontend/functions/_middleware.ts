@@ -70,10 +70,12 @@ export async function proxyRequest(
     const headers = new Headers(request.headers);
     const clientIp = headers.get("CF-Connecting-IP");
     headers.delete("host");
+    headers.delete("X-QRHub-Client-IP");
     headers.set("X-QRHub-Proxy-Secret", env.INTERNAL_PROXY_SECRET);
     headers.set("X-Forwarded-Host", requestUrl.host);
     headers.set("X-Forwarded-Proto", requestUrl.protocol.slice(0, -1));
     if (clientIp) {
+      headers.set("X-QRHub-Client-IP", clientIp);
       headers.set("X-Real-IP", clientIp);
       headers.set("X-Forwarded-For", clientIp);
     }
@@ -96,7 +98,19 @@ export async function proxyRequest(
       return qrFallbackResponse(requestUrl);
     }
 
-    return new Response(upstreamResponse.body, upstreamResponse);
+    const responseHeaders = new Headers(upstreamResponse.headers);
+    const bridgedCookie = responseHeaders.get("X-QRHub-Set-Cookie");
+    responseHeaders.delete("X-QRHub-Set-Cookie");
+    if (bridgedCookie) {
+      responseHeaders.delete("Set-Cookie");
+      responseHeaders.append("Set-Cookie", bridgedCookie);
+    }
+
+    return new Response(upstreamResponse.body, {
+      status: upstreamResponse.status,
+      statusText: upstreamResponse.statusText,
+      headers: responseHeaders,
+    });
   } catch {
     return isQrRequest
       ? qrFallbackResponse(requestUrl)
